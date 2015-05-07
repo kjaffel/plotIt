@@ -363,6 +363,10 @@ namespace plotIt {
       if (node["y-axis-range"])
         plot.y_axis_range = node["y-axis-range"].as<std::vector<float>>();
 
+      plot.y_axis_show_zero = false;
+      if (node["y-axis-show-zero"])
+        plot.y_axis_show_zero = true;
+
       if (node["inherits-from"])
         plot.inherits_from = node["inherits-from"].as<std::string>();
       else

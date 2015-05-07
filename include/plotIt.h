@@ -170,6 +170,8 @@ namespace plotIt {
     std::vector<float> x_axis_range;
     std::vector<float> y_axis_range;
 
+    bool y_axis_show_zero;
+
     std::vector<std::string> save_extensions;
 
     bool show_ratio;

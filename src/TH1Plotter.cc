@@ -250,6 +250,10 @@ namespace plotIt {
       if (minimum <= 0 && plot.log_y) {
         minimum = 0.1;
       }
+
+      if (plot.y_axis_show_zero && !plot.log_y)
+        minimum = 0;
+
       setMinimum(toDraw[0].first, minimum * 1.20);
     }
 
