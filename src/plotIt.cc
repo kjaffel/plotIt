@@ -365,7 +365,7 @@ namespace plotIt {
 
       plot.y_axis_show_zero = false;
       if (node["y-axis-show-zero"])
-        plot.y_axis_show_zero = true;
+        plot.y_axis_show_zero = node["y-axis-show-zero"].as<bool>();
 
       if (node["inherits-from"])
         plot.inherits_from = node["inherits-from"].as<std::string>();
