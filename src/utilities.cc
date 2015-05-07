@@ -168,10 +168,10 @@ namespace plotIt {
       setMinimum(dynamic_cast<THStack*>(object), minimum);
   }
 
-  void setRange(TObject* object, Plot& plot) {
+  void setRange(TObject* object, Plot& plot, bool onlyX/* = false*/) {
     if (dynamic_cast<TH1*>(object))
-      setRange(dynamic_cast<TH1*>(object), plot);
+      setRange(dynamic_cast<TH1*>(object), plot, onlyX);
     else if (dynamic_cast<THStack*>(object))
-      setRange(dynamic_cast<THStack*>(object), plot);
+      setRange(dynamic_cast<THStack*>(object), plot, onlyX);
   }
 }

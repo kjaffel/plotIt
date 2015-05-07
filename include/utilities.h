@@ -87,14 +87,14 @@ namespace plotIt {
   void setMinimum(TObject* object, float minimum);
 
   template<class T>
-    void setRange(T* object, Plot& plot) {
+    void setRange(T* object, Plot& plot, bool onlyX = false) {
       if (plot.x_axis_range.size() == 2)
         object->GetXaxis()->SetLimits(plot.x_axis_range[0], plot.x_axis_range[1]);
-      if (plot.y_axis_range.size() == 2) {
+      if (!onlyX && plot.y_axis_range.size() == 2) {
         object->SetMinimum(plot.y_axis_range[0]);
         object->SetMaximum(plot.y_axis_range[1]);
       }
     }
 
-  void setRange(TObject* object, Plot& plot);
+  void setRange(TObject* object, Plot& plot, bool onlyX = false);
 }
