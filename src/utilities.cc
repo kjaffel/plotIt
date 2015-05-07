@@ -172,6 +172,6 @@ namespace plotIt {
     if (dynamic_cast<TH1*>(object))
       setRange(dynamic_cast<TH1*>(object), plot);
     else if (dynamic_cast<THStack*>(object))
-      setRange(dynamic_cast<THStack*>(object)->GetHistogram(), plot);
+      setRange(dynamic_cast<THStack*>(object), plot);
   }
 }

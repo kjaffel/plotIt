@@ -327,6 +327,7 @@ namespace plotIt {
 
       h_systematics->SetFillStyle(m_plotIt.getConfiguration().error_fill_style);
       h_systematics->SetFillColor(m_plotIt.getConfiguration().error_fill_color);
+      setRange(h_systematics.get(), plot);
       h_systematics->Draw("E2");
 
       h_data_cloned->Draw("P E X0 same");
