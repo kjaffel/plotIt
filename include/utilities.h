@@ -89,7 +89,7 @@ namespace plotIt {
   template<class T>
     void setRange(T* object, Plot& plot, bool onlyX = false) {
       if (plot.x_axis_range.size() == 2)
-        object->GetXaxis()->SetLimits(plot.x_axis_range[0], plot.x_axis_range[1]);
+        object->GetXaxis()->SetRangeUser(plot.x_axis_range[0], plot.x_axis_range[1]);
       if (!onlyX && plot.y_axis_range.size() == 2) {
         object->SetMinimum(plot.y_axis_range[0]);
         object->SetMaximum(plot.y_axis_range[1]);
