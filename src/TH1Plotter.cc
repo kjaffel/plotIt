@@ -236,8 +236,10 @@ namespace plotIt {
       if (plot.log_y)
         hi_pad->SetLogy();
 
-      if (plot.log_x)
+      if (plot.log_x) {
         hi_pad->SetLogx();
+        low_pad->SetLogx();
+      }
     }
 
     toDraw[0].first->Draw(toDraw[0].second.c_str());
