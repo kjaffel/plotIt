@@ -162,6 +162,7 @@ namespace plotIt {
 
     bool normalized;
     bool log_y;
+    bool log_x;
 
     std::string x_axis;
     std::string y_axis;

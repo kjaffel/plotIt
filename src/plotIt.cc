@@ -330,6 +330,10 @@ namespace plotIt {
       if (node["log-y"])
         plot.log_y = node["log-y"].as<bool>();
 
+      plot.log_x = false;
+      if (node["log-x"])
+        plot.log_x = node["log-x"].as<bool>();
+
       if (node["save-extensions"])
         plot.save_extensions = node["save-extensions"].as<std::vector<std::string>>();
       else
@@ -520,6 +524,9 @@ namespace plotIt {
 
     if (plot.log_y)
       c.SetLogy();
+
+    if (plot.log_x)
+      c.SetLogx();
 
     Position legend_position = m_legend.position;
     if (!plot.legend_position.empty())
