@@ -357,7 +357,7 @@ namespace YAML {
         rhs.x1 = node[0].as<float>();
         rhs.y1 = node[1].as<float>();
         rhs.x2 = node[2].as<float>();
-        rhs.y2 = node[2].as<float>();
+        rhs.y2 = node[3].as<float>();
 
         return true;
       }
