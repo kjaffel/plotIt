@@ -187,6 +187,10 @@ namespace plotIt {
         YAML::Node labels = node["labels"];
         m_config.labels = parseLabelsNode(labels);
       }
+
+      m_config.y_axis_format = "%1% / %2$.2f";
+      if (node["y-axis-format"])
+        m_config.y_axis_format = node["y-axis-format"].as<std::string>();
     }
 
     YAML::Node groups = f["groups"];
@@ -321,6 +325,10 @@ namespace plotIt {
       plot.y_axis = "Events";
       if (node["y-axis"])
         plot.y_axis = node["y-axis"].as<std::string>();
+
+      plot.y_axis_format = m_config.y_axis_format;
+      if (node["y-axis-format"])
+        plot.y_axis_format = node["y-axis-format"].as<std::string>();
 
       plot.normalized = false;
       if (node["normalized"])

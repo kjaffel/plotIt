@@ -115,6 +115,14 @@ namespace plotIt {
     return style;
   }
 
+  boost::format get_formatter(const std::string format_string) {
+    using namespace boost::io;
+    boost::format formatter(format_string);
+    formatter.exceptions(all_error_bits ^ (too_many_args_bit | too_few_args_bit));
+
+    return formatter;
+  }
+
   void setAxisTitles(TObject* object, Plot& plot) {
     if (dynamic_cast<TH1*>(object))
       setAxisTitles(dynamic_cast<TH1*>(object), plot);

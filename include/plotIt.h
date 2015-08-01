@@ -166,6 +166,7 @@ namespace plotIt {
 
     std::string x_axis;
     std::string y_axis;
+    std::string y_axis_format;
 
     // Axis range
     std::vector<float> x_axis_range;
@@ -222,6 +223,8 @@ namespace plotIt {
 
     // Systematics
     float luminosity_error_percent;
+
+    std::string y_axis_format;
 
     int16_t error_fill_color;
     int16_t error_fill_style;

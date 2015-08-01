@@ -4,8 +4,12 @@
 
 #include <plotIt.h>
 
+#include <boost/format.hpp>
+
 namespace plotIt {
   TStyle* createStyle();
+
+  boost::format get_formatter(const std::string format_string);
 
   template<class T>
     void setAxisTitles(T* object, Plot& plot) {
@@ -16,9 +20,9 @@ namespace plotIt {
       if (plot.y_axis.length() > 0 && object->GetYaxis()) {
         float binSize = object->GetXaxis()->GetBinWidth(1);
         std::string title = plot.y_axis;
-        std::stringstream ss;
-        ss << title << " / " << std::fixed << std::setprecision(2) << binSize;
-        object->GetYaxis()->SetTitle(ss.str().c_str());
+
+        boost::format formatter = get_formatter(plot.y_axis_format);
+        object->GetYaxis()->SetTitle((formatter % title % binSize).str().c_str());
       }
 
       if (plot.show_ratio && object->GetXaxis())

@@ -6,7 +6,6 @@
 #include <TObject.h>
 #include <TVirtualFitter.h>
 
-#include <boost/format.hpp>
 #include <utilities.h>
 
 namespace plotIt {
@@ -363,10 +362,8 @@ namespace plotIt {
         fct->Draw("same");
 
         if (plot.fit_legend.length() > 0) {
-          using namespace boost::io;
           uint32_t fit_parameters = fct->GetNpar();
-          boost::format formatter(plot.fit_legend);
-          formatter.exceptions( all_error_bits ^ ( too_many_args_bit | too_few_args_bit )  );
+          boost::format formatter = get_formatter(plot.fit_legend);
 
           for (uint32_t i = 0; i < fit_parameters; i++) {
             formatter % fct->GetParameter(i);
