@@ -23,6 +23,7 @@
 
 #include <boost/regex.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
@@ -625,7 +626,9 @@ namespace plotIt {
       m_temporaryObjects.push_back(t);
     }
 
-    fs::path outputName = m_outputPath / plot.name;
+    std::string plot_name = plot.name;
+    boost::replace_all(plot_name, "/", "_");
+    fs::path outputName = m_outputPath / plot_name;
 
     for (const std::string& extension: plot.save_extensions) {
       fs::path outputNameWithExtension = outputName.replace_extension(extension);
@@ -756,21 +759,70 @@ namespace plotIt {
     if (! input.get())
       return false;
 
-    TIter keys(input->GetListOfKeys());
+    TIter root_keys(input->GetListOfKeys());
 
     for (Plot& plot: m_plots) {
       TKey* key;
       TObject* obj;
       bool match = false;
 
-      keys.Reset();
-      while ((key = static_cast<TKey*>(keys()))) {
+
+      std::vector<std::string> tokens;
+      boost::split(tokens, plot.name, boost::is_any_of("/"));
+
+      bool in_directory = tokens.size() != 1;
+      std::string plot_name = tokens.back();
+      std::string expanded_plot_name;
+
+      root_keys.Reset();
+
+      TIter it = root_keys;
+
+      if (in_directory) {
+          auto find_folder = [&](const std::string& name, TDirectory* root) -> TDirectory* {
+              TIter it(root->GetListOfKeys());
+              while ((key = static_cast<TKey*>(it()))) {
+                  TObject* obj = key->ReadObj();
+                  if (!obj->InheritsFrom("TDirectory"))
+                      continue;
+
+                  if (fnmatch(name.c_str(), obj->GetName(), FNM_CASEFOLD) == 0) {
+                      return dynamic_cast<TDirectory*>(obj);
+                  }
+              }
+
+              return nullptr;
+          };
+
+          std::string not_found;
+          TDirectory* root = input.get();
+          for (size_t i = 0; i < tokens.size() - 1; i++) {
+              std::string folder = tokens[i];
+              root = find_folder(folder, root);
+
+              if (! root) {
+                  not_found = folder;
+                  break;
+              }
+
+              expanded_plot_name += std::string(root->GetName()) + "/";
+          }
+
+          if (! root) {
+              std::cout << "Warning: The folder '" << not_found << "' was not found in file '" << file.path << "'" << std::endl;
+              continue;
+          }
+
+          it = TIter(root->GetListOfKeys());
+      }
+
+      while ((key = static_cast<TKey*>(it()))) {
         obj = key->ReadObj();
         if (! obj->InheritsFrom(plot.inherits_from.c_str()))
           continue;
 
         // Check name
-        if (fnmatch(plot.name.c_str(), obj->GetName(), FNM_CASEFOLD) == 0) {
+        if (fnmatch(plot_name.c_str(), obj->GetName(), FNM_CASEFOLD) == 0) {
 
           // Check if this name is excluded
           if ((plot.exclude.length() > 0) && (fnmatch(plot.exclude.c_str(), obj->GetName(), FNM_CASEFOLD) == 0)) {
@@ -779,7 +831,8 @@ namespace plotIt {
 
           // Got it!
           match = true;
-          plots.push_back(plot.Clone(obj->GetName()));
+          expanded_plot_name += obj->GetName();
+          plots.push_back(plot.Clone(expanded_plot_name));
         }
       }
 
