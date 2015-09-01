@@ -15,7 +15,8 @@
 
 plots*/*
 external/*
-
+*.root
+*.pdf
 plotIt
 
 *.orig

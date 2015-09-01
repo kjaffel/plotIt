@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <memory>
 #include <iomanip>
+#include <iostream>
 
 #include "yaml-cpp/yaml.h"
 
