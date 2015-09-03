@@ -1,0 +1,52 @@
+configuration:
+  width: 800
+  height: 800
+  luminosity-label: '%lumi% fb^{-1} (8 TeV)'
+  experiment: "CMS"
+  extra-label: "Preliminary"
+  root: 'files'
+  luminosity: 100
+  luminosity-error: 0.026
+  error-fill-style: 3154
+  error-fill-color: "#ee556270"
+  ratio-fit-error-fill-style: 1001
+  ratio-fit-error-fill-color: "#aa556270"
+  ratio-fit-line-color: "#0B486B"
+  mode: "tree"
+  tree-name: "t"
+
+files:
+  'data.root':
+    type: data
+    legend: "Data"
+
+  'MC_sample1.root':
+    type: mc
+    cross-section: 245.8
+    generated-events: 21675970
+    fill-color: "#D95B43"
+    legend: "MC 1"
+    order: 1
+
+  'MC_sample2.root':
+    type: mc
+    cross-section: 666.3
+    generated-events: 24045248
+    fill-color: '#53777A'
+    legend: 'MC 2'
+    order: 0
+
+plots:
+  'histo1':
+    x-axis: "X axis"
+    y-axis: "Y axis"
+    y-axis-format: "%1% / %2$.0f GeV"
+    normalized: false
+    x-axis-range: [0, 10]
+    binning-x: 50
+
+    draw-string: "value"
+    selection-string: "value > 2"
+
+legend:
+  position: [0.25, 0.78, 0.45, 0.9]

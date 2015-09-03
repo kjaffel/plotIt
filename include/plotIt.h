@@ -11,6 +11,7 @@
 #include <TH1.h>
 #include <THStack.h>
 #include <TStyle.h>
+#include <TChain.h>
 
 #include <vector>
 #include <string>
@@ -87,6 +88,8 @@ namespace plotIt {
 
     int16_t order;
     Summary summary;
+
+    std::shared_ptr<TChain> chain;
   };
 
   struct PlotStyle {
@@ -173,6 +176,12 @@ namespace plotIt {
     std::vector<float> x_axis_range;
     std::vector<float> y_axis_range;
 
+    uint16_t binning_x;  // Only used in tree mode
+    uint16_t binning_y;  // Only used in tree mode
+
+    std::string draw_string;  // Only used in tree mode
+    std::string selection_string;  // Only used in tree mode
+
     bool y_axis_show_zero;
 
     std::vector<std::string> save_extensions;
@@ -247,6 +256,9 @@ namespace plotIt {
     std::string root;
 
     bool ignore_scales = false;
+
+    std::string mode = "hist"; // "tree" or "hist"
+    std::string tree_name;
 
     Configuration() {
       width = height = 800;

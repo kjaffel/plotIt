@@ -192,6 +192,12 @@ namespace plotIt {
       m_config.y_axis_format = "%1% / %2$.2f";
       if (node["y-axis-format"])
         m_config.y_axis_format = node["y-axis-format"].as<std::string>();
+
+      if (node["mode"])
+          m_config.mode = node["mode"].as<std::string>();
+
+      if (node["tree-name"])
+          m_config.tree_name = node["tree-name"].as<std::string>();
     }
 
     YAML::Node groups = f["groups"];
@@ -400,6 +406,18 @@ namespace plotIt {
 
       if (node["legend-position"])
         plot.legend_position = node["legend-position"].as<Position>();
+
+      if (node["binning-x"])
+        plot.binning_x = node["binning-x"].as<uint16_t>();
+
+      if (node["binning-y"])
+        plot.binning_y = node["binning-y"].as<uint16_t>();
+
+      if (node["draw-string"])
+        plot.draw_string = node["draw-string"].as<std::string>();
+
+      if (node["selection-string"])
+        plot.selection_string = node["selection-string"].as<std::string>();
 
       m_plots.push_back(plot);
     }
@@ -657,8 +675,12 @@ namespace plotIt {
 
     //expandFiles();
     std::vector<Plot> plots;
-    if (! expandObjects(m_files[0], plots)) {
-      return;
+    if (m_config.mode == "tree") {
+      plots = m_plots;
+    } else {
+      if (!expandObjects(m_files[0], plots)) {
+        return;
+      }
     }
 
     for (Plot& plot: plots) {
@@ -669,6 +691,27 @@ namespace plotIt {
   bool plotIt::loadObject(File& file, const Plot& plot) {
 
     file.object = nullptr;
+
+    if (m_config.mode == "tree") {
+
+        if (!file.chain.get()) {
+          file.chain.reset(new TChain(m_config.tree_name.c_str()));
+        }
+
+        file.chain->Add(file.path.c_str());
+
+        std::shared_ptr<TH1> hist(new TH1F(plot.name.c_str(), "", plot.binning_x, plot.x_axis_range[0], plot.x_axis_range[1]));
+        hist->GetDirectory()->cd();
+
+        file.chain->Draw((plot.draw_string + ">>" + plot.name).c_str(), plot.selection_string.c_str());
+
+        hist->SetDirectory(nullptr);
+        file.object = hist.get();
+
+        m_temporaryObjects.push_back(hist);
+
+        return true;
+    }
 
     std::shared_ptr<TFile> input(TFile::Open(file.path.c_str()));
     if (! input.get())
