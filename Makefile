@@ -28,6 +28,7 @@ ARFLAGS       = -cq
 
 CXXFLAGS	   += $(ROOTCFLAGS) $(INCLUDES) -Iinclude/ -Iexternal/include/ -I$(shell echo $(BOOST_ROOT))/include
 LIBS  		    = $(ROOTLIBS) -lboost_filesystem -lboost_regex -lboost_system
+STATIC_LIBS     = -lyaml-cpp -lsqlpp-mysql
 GLIBS	    	  = $(ROOTGLIBS)
 #------------------------------------------------------------------------------
 SOURCES		= $(wildcard src/*.$(SrcSuf))
@@ -46,7 +47,7 @@ clean:
 	@rm -f $(DEPENDS);
 
 plotIt: $(OBJECTS)
-	$(LD) $(SOFLAGS) $(LDFLAGS) $+ -o $@ -Wl,-Bstatic -lyaml-cpp -Wl,-Bdynamic $(LIBS)
+	$(LD) $(SOFLAGS) $(LDFLAGS) $+ -o $@ -Wl,-Bstatic $(STATIC_LIBS) -Wl,-Bdynamic $(LIBS)
 
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
