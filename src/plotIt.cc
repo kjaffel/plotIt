@@ -1,4 +1,5 @@
 #include "plotIt.h"
+#include <samadhi/Database.h>
 
 // For fnmatch()
 #include <fnmatch.h>
@@ -87,25 +88,32 @@ namespace plotIt {
 
   void plotIt::parseIncludes(YAML::Node& node) {
 
-    if (! node["include"])
-      return;
+    if (node["include"]) {
+        std::vector<std::string> files = node["include"].as<std::vector<std::string>>();
+        node.remove("include");
 
-    std::vector<std::string> files = node["include"].as<std::vector<std::string>>();
-    node.remove("include");
+        for (std::string& file: files) {
+          YAML::Node root = YAML::LoadFile(file);
 
-    for (std::string& file: files) {
-      YAML::Node root = YAML::LoadFile(file);
+          for (YAML::const_iterator it = root.begin(); it != root.end(); ++it) {
+            node[it->first.as<std::string>()] = it->second;
+          }
+        }
 
-      for (YAML::const_iterator it = root.begin(); it != root.end(); ++it) {
-        node[it->first.as<std::string>()] = it->second;
-      }
+        if (node["include"])
+            parseIncludes(node);
     }
 
-    parseIncludes(node);
+    for(YAML::iterator it = node.begin(); it != node.end(); ++it) {
+      if (it->second.Type() == YAML::NodeType::Map)
+          parseIncludes(it->second);
+    }
   }
 
   void plotIt::parseConfigurationFile(const std::string& file) {
     YAML::Node f = YAML::LoadFile(file);
+
+    parseIncludes(f);
 
     if (! f["files"]) {
       throw YAML::ParserException(YAML::Mark::null_mark(), "Your configuration file must have a 'files' list");
@@ -200,6 +208,35 @@ namespace plotIt {
           m_config.tree_name = node["tree-name"].as<std::string>();
     }
 
+    // Database
+    if (f["database"]) {
+        YAML::Node db = f["database"];
+
+        auto config = std::make_shared<sqlpp::mysql::connection_config>();
+        config->host = "localhost";
+        config->user = "root";
+        config->debug = false;
+
+        if (db["host"])
+            config->host = db["host"].as<std::string>();
+
+        if (db["user"])
+            config->user = db["user"].as<std::string>();
+
+        if (db["password"])
+            config->password = db["password"].as<std::string>();
+
+        if (db["database"])
+            config->database = db["database"].as<std::string>();
+
+        if (db["debug"])
+            config->debug = db["debug"].as<bool>();
+
+        std::cout << "Connecting to SAMADhi..." << std::endl;
+        Database::get().connect(config);
+        std::cout << "Connected." << std::endl << std::endl;
+    }
+
     YAML::Node groups = f["groups"];
 
     for (YAML::const_iterator it = groups.begin(); it != groups.end(); ++it) {
@@ -217,7 +254,6 @@ namespace plotIt {
 
 
     YAML::Node files = f["files"];
-    parseIncludes(files);
 
     for (YAML::const_iterator it = files.begin(); it != files.end(); ++it) {
       File file;
@@ -245,10 +281,16 @@ namespace plotIt {
       else
         file.scale = 1;
 
+      if (file.type != DATA && Database::get().connected()) {
+        file.cross_section = -1.;
+        file.generated_events = -1.;
+      } else {
+        file.cross_section = 1.;
+        file.generated_events = 1.;
+      }
+
       if (node["cross-section"])
         file.cross_section = node["cross-section"].as<float>();
-      else
-        file.cross_section = 1;
 
       if (node["branching-ratio"])
         file.branching_ratio = node["branching-ratio"].as<float>();
@@ -257,8 +299,6 @@ namespace plotIt {
 
       if (node["generated-events"])
         file.generated_events = node["generated-events"].as<float>();
-      else
-        file.generated_events = 1.;
 
       file.order = std::numeric_limits<int16_t>::min();
       if (node["order"])
@@ -303,6 +343,24 @@ namespace plotIt {
         file.plot_style->loadFromYAML(node, file, *this);
       }
 
+      // Query the database if needed
+      if (file.cross_section < 0 || file.generated_events < 0) {
+
+        if (!node["sample-name"]) {
+          throw YAML::ParserException(YAML::Mark::null_mark(), "No cross-section or number of generated events specified for this sample. I would like to retrieve these information from the database, but you did not specified the sample name using the 'sample-name' option.");
+        }
+
+        std::string tag = node["sample-name"].as<std::string>();
+
+        if (file.cross_section < 0) {
+            file.cross_section = Database::get().get_xsection(tag);
+        }
+
+        if (file.generated_events < 0) {
+            file.generated_events = Database::get().get_normalization(tag);
+        }
+      }
+
       m_files.push_back(file);
     }
 
@@ -315,7 +373,6 @@ namespace plotIt {
     }
 
     YAML::Node plots = f["plots"];
-    parseIncludes(plots);
 
     for (YAML::const_iterator it = plots.begin(); it != plots.end(); ++it) {
       Plot plot;
