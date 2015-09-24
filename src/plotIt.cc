@@ -730,7 +730,6 @@ namespace plotIt {
   void plotIt::plotAll() {
     // First, explode plots to match all glob patterns
 
-    //expandFiles();
     std::vector<Plot> plots;
     if (m_config.mode == "tree") {
       plots = m_plots;
@@ -866,13 +865,12 @@ namespace plotIt {
       TObject* obj;
       bool match = false;
 
-
       std::vector<std::string> tokens;
       boost::split(tokens, plot.name, boost::is_any_of("/"));
 
       bool in_directory = tokens.size() != 1;
       std::string plot_name = tokens.back();
-      std::string expanded_plot_name;
+      std::string root_name;
 
       root_keys.Reset();
 
@@ -905,7 +903,7 @@ namespace plotIt {
                   break;
               }
 
-              expanded_plot_name += std::string(root->GetName()) + "/";
+              root_name += std::string(root->GetName()) + "/";
           }
 
           if (! root) {
@@ -929,9 +927,17 @@ namespace plotIt {
             continue;
           }
 
+          std::string expanded_plot_name = root_name + obj->GetName();
+
+          // The same object can be stored multiple time with a different key
+          // The iterator returns first the object with the highest key, which is the most recent object
+          // Check if we already have a plot with the same exact name
+          if (std::find_if(plots.begin(), plots.end(), [&expanded_plot_name](const Plot& p) { return p.name == expanded_plot_name; }) != plots.end()) {
+            continue;
+          }
+
           // Got it!
           match = true;
-          expanded_plot_name += obj->GetName();
           plots.push_back(plot.Clone(expanded_plot_name));
         }
       }
