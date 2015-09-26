@@ -323,20 +323,25 @@ namespace plotIt {
       h_systematics->Reset(); // Keep binning
       h_systematics->SetMarkerSize(0);
 
+      bool has_syst = false;
       for (uint32_t i = 1; i <= (uint32_t) h_systematics->GetNbinsX(); i++) {
 
-        if (mc_histo_syst_only->GetBinContent(i) == 0)
+        if (mc_histo_syst_only->GetBinContent(i) == 0 || mc_histo_syst_only->GetBinError(i) == 0)
           continue;
 
         float syst = mc_histo_syst_only->GetBinContent(i) / (mc_histo_syst_only->GetBinError(i) + mc_histo_syst_only->GetBinContent(i));
         h_systematics->SetBinContent(i, 1);
         h_systematics->SetBinError(i, 1 - syst);
+
+        has_syst = true;
       }
 
-      h_systematics->SetFillStyle(m_plotIt.getConfiguration().error_fill_style);
-      h_systematics->SetFillColor(m_plotIt.getConfiguration().error_fill_color);
-      setRange(h_systematics.get(), plot, true);
-      h_systematics->Draw("E2");
+      if (has_syst) {
+        h_systematics->SetFillStyle(m_plotIt.getConfiguration().error_fill_style);
+        h_systematics->SetFillColor(m_plotIt.getConfiguration().error_fill_color);
+        setRange(h_systematics.get(), plot, true);
+        h_systematics->Draw("E2");
+      }
 
       h_data_cloned->Draw("P E X0 same");
 
