@@ -35,6 +35,9 @@ curl -L "https://github.com/rbock/sqlpp11/archive/{0.34.tar.gz}" -o "sqlpp11_#1"
 tar xf sqlpp11_0.34.tar.gz
 
 cd sqlpp11-0.34
+
+patch -p1 < ../sqlpp11-0.34.patch
+
 mkdir build
 cd build
 
