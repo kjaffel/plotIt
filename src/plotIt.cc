@@ -15,6 +15,7 @@
 #include <TLegendEntry.h>
 #include <TPaveText.h>
 #include <TColor.h>
+#include <TGaxis.h>
 
 #include <vector>
 #include <map>
@@ -639,6 +640,9 @@ namespace plotIt {
     float topMargin = TOP_MARGIN;
     if (plot.show_ratio)
       topMargin /= .6666;
+
+    // Move exponent label if shown
+    TGaxis::SetExponentOffset(-0.06, 0, "y");
 
     // Luminosity label
     if (m_config.lumi_label_parsed.length() > 0) {
