@@ -193,6 +193,7 @@ namespace plotIt {
     Point fit_legend_position = {0.20, 0.38};
 
     bool show_errors;
+    bool show_overflow = false;
 
     std::string inherits_from;
 
@@ -256,6 +257,7 @@ namespace plotIt {
     std::string root;
 
     bool ignore_scales = false;
+    bool show_overflow = false;
 
     std::string mode = "hist"; // "tree" or "hist"
     std::string tree_name;

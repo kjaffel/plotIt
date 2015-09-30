@@ -206,6 +206,9 @@ namespace plotIt {
 
       if (node["tree-name"])
           m_config.tree_name = node["tree-name"].as<std::string>();
+
+      if (node["show-overflow"])
+          m_config.show_overflow = node["show-overflow"].as<bool>();
     }
 
     // Database
@@ -463,6 +466,11 @@ namespace plotIt {
 
       if (node["legend-position"])
         plot.legend_position = node["legend-position"].as<Position>();
+
+      if (node["show-overflow"])
+        plot.show_overflow = node["show-overflow"].as<bool>();
+      else
+        plot.show_overflow = m_config.show_overflow;
 
       if (node["binning-x"])
         plot.binning_x = node["binning-x"].as<uint16_t>();

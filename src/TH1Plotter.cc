@@ -47,9 +47,17 @@ namespace plotIt {
 
       h->Rebin(plot.rebin);
 
+      // Add overflow to first and last bin if requested
+      if (plot.show_overflow) {
+        addOverflow(h, plot);
+      }
+
       for (Systematic& s: file.systematics) {
         TH1* syst = static_cast<TH1*>(s.object);
         syst->Rebin(plot.rebin);
+        if (plot.show_overflow) {
+          addOverflow(h, plot);
+        }
       }
     }
 
@@ -445,4 +453,48 @@ namespace plotIt {
       h->SetLineColor(style->fill_color);
   }
 
+  void TH1Plotter::addOverflow(TH1* h, const Plot& plot) {
+
+    size_t first_bin = 1;
+    size_t last_bin = h->GetNbinsX();
+
+    if (plot.x_axis_range.size() == 2) {
+      std::shared_ptr<TH1> copy(dynamic_cast<TH1*>(h->Clone()));
+      copy->SetDirectory(nullptr);
+      copy->GetXaxis()->SetRangeUser(plot.x_axis_range[0], plot.x_axis_range[1]);
+
+      // Find first and last bin corresponding to the given range
+      first_bin = copy->GetXaxis()->GetFirst();
+      last_bin = copy->GetXaxis()->GetLast();
+    }
+
+    // GetBinError returns sqrt(SumW2) for a given bin
+    // SetBinError updates SumW2 for a given bin with error*error
+
+    float underflow = 0;
+    float underflow_sumw2 = 0;
+    for (size_t i = 0; i < first_bin; i++) {
+      underflow += h->GetBinContent(i);
+      underflow_sumw2 += (h->GetBinError(i) * h->GetBinError(i));
+    }
+
+    float overflow = 0;
+    float overflow_sumw2 = 0;
+    for (size_t i = last_bin + 1; i <= (size_t) h->GetNbinsX() + 1; i++) {
+      overflow += h->GetBinContent(i);
+      overflow_sumw2 += (h->GetBinError(i) * h->GetBinError(i));
+    }
+
+    float first_bin_content = h->GetBinContent(first_bin);
+    float first_bin_sumw2 = h->GetBinError(first_bin) * h->GetBinError(first_bin);
+
+    float last_bin_content = h->GetBinContent(last_bin);
+    float last_bin_sumw2 = h->GetBinError(last_bin) * h->GetBinError(last_bin);
+
+    h->SetBinContent(first_bin, first_bin_content + underflow);
+    h->SetBinError(first_bin, sqrt(underflow_sumw2 + first_bin_sumw2));
+
+    h->SetBinContent(last_bin, last_bin_content + overflow);
+    h->SetBinError(last_bin, sqrt(overflow_sumw2 + last_bin_sumw2));
+  }
 }
