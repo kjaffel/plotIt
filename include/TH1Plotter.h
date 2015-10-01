@@ -14,5 +14,6 @@ namespace plotIt {
 
     private:
       void setHistogramStyle(const File& file);
+      void addOverflow(TH1* h, const Plot& plot);
   };
 }
