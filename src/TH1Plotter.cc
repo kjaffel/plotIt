@@ -5,10 +5,53 @@
 #include <TLatex.h>
 #include <TObject.h>
 #include <TVirtualFitter.h>
+#include <TGraphAsymmErrors.h>
 
 #include <utilities.h>
 
 namespace plotIt {
+
+    /*!
+     * Compute the ratio between two histograms, taking into account asymetric error bars
+     */
+    std::shared_ptr<TGraphAsymmErrors> getRatio(TH1* a, TH1* b) {
+        std::shared_ptr<TGraphAsymmErrors> g(new TGraphAsymmErrors(a));
+
+        size_t npoint = 0;
+        for (size_t i = 1; i <= (size_t) a->GetNbinsX(); i++) {
+            float b1 = a->GetBinContent(i);
+            float b2 = b->GetBinContent(i);
+
+            if ((b1 == 0) || (b2 == 0))
+                continue;
+            
+            float ratio = b1 / b2;
+
+            float b1sq = b1 * b1;
+            float b2sq = b2 * b2;
+
+            float e1sq_up = a->GetBinErrorUp(i) * a->GetBinErrorUp(i);
+            float e2sq_up = b->GetBinErrorUp(i) * b->GetBinErrorUp(i);
+
+            float e1sq_low = a->GetBinErrorLow(i) * a->GetBinErrorLow(i);
+            float e2sq_low = b->GetBinErrorLow(i) * b->GetBinErrorLow(i);
+
+            float error_up = sqrt((e1sq_up * b2sq + e2sq_up * b1sq) / (b2sq * b2sq));
+            float error_low = sqrt((e1sq_low * b2sq + e2sq_low * b1sq) / (b2sq * b2sq));
+
+            //Set the point center and its errors
+            g->SetPoint(npoint, a->GetBinCenter(i), ratio);
+            //g->SetPointError(npoint, a->GetBinCenter(i) - a->GetBinLowEdge(i),
+                    //a->GetBinLowEdge(i) - a->GetBinCenter(i) + a->GetBinWidth(i),
+                    //error_low, error_up);
+            g->SetPointError(npoint, 0, 0, error_low, error_up);
+            npoint++; 
+        }
+
+        g->Set(npoint);
+
+        return g;
+    }
 
   bool TH1Plotter::supports(TObject& object) {
     return object.InheritsFrom("TH1");
@@ -49,14 +92,14 @@ namespace plotIt {
 
       // Add overflow to first and last bin if requested
       if (plot.show_overflow) {
-        addOverflow(h, plot);
+        addOverflow(h, file.type, plot);
       }
 
       for (Systematic& s: file.systematics) {
         TH1* syst = static_cast<TH1*>(s.object);
         syst->Rebin(plot.rebin);
         if (plot.show_overflow) {
-          addOverflow(h, plot);
+          addOverflow(syst, file.type, plot);
         }
       }
     }
@@ -96,6 +139,8 @@ namespace plotIt {
         if (! h_data.get()) {
           h_data.reset(dynamic_cast<TH1*>(file.object->Clone()));
           h_data->SetDirectory(nullptr);
+          h_data->Sumw2(false); // Disable SumW2 for data
+          h_data->SetBinErrorOption((TH1::EBinErrorOpt) plot.errors_type);
           data_drawing_options += m_plotIt.getPlotStyle(file)->drawing_options;
         } else {
           h_data->Add(dynamic_cast<TH1*>(file.object));
@@ -314,19 +359,25 @@ namespace plotIt {
       low_pad->cd();
       low_pad->SetGridy();
 
-      std::shared_ptr<TH1> h_data_cloned(static_cast<TH1*>(h_data->Clone()));
-      h_data_cloned->SetDirectory(nullptr);
-      h_data_cloned->Divide(mc_histo_stat_only.get());
-      h_data_cloned->SetMaximum(2);
-      h_data_cloned->SetMinimum(0);
+      std::shared_ptr<TH1> h_low_pad_axis(static_cast<TH1*>(h_data->Clone()));
+      h_low_pad_axis->SetDirectory(nullptr);
+      h_low_pad_axis->Reset(); // Keep binning
+      h_low_pad_axis->SetMaximum(2);
+      h_low_pad_axis->SetMinimum(0);
+      setRange(h_low_pad_axis.get(), plot);
 
-      setDefaultStyle(h_data_cloned.get(), 1. / 0.3333);
-      h_data_cloned->GetYaxis()->SetTickLength(0.04);
-      h_data_cloned->GetYaxis()->SetNdivisions(505, true);
-      h_data_cloned->GetXaxis()->SetTickLength(0.07);
+      setDefaultStyle(h_low_pad_axis.get(), 1. / 0.3333);
+      h_low_pad_axis->GetYaxis()->SetTickLength(0.04);
+      h_low_pad_axis->GetYaxis()->SetNdivisions(505, true);
+      h_low_pad_axis->GetXaxis()->SetTickLength(0.07);
+
+      h_low_pad_axis->Draw("P E X0");
+
+      std::shared_ptr<TGraphAsymmErrors> ratio = getRatio(h_data.get(), mc_histo_stat_only.get());
+      ratio->Draw("P same");
 
       // Compute systematic errors in %
-      std::shared_ptr<TH1> h_systematics(static_cast<TH1*>(h_data_cloned->Clone()));
+      std::shared_ptr<TH1> h_systematics(static_cast<TH1*>(h_low_pad_axis->Clone()));
       h_systematics->SetDirectory(nullptr);
       h_systematics->Reset(); // Keep binning
       h_systematics->SetMarkerSize(0);
@@ -351,14 +402,14 @@ namespace plotIt {
         h_systematics->Draw("E2");
       }
 
-      h_data_cloned->Draw("P E X0 same");
+      h_low_pad_axis->Draw("P E X0 same");
 
       if (plot.fit_ratio) {
-        float xMin = h_data_cloned->GetXaxis()->GetBinLowEdge(1);
-        float xMax = h_data_cloned->GetXaxis()->GetBinUpEdge(h_data_cloned->GetXaxis()->GetLast());
+        float xMin = h_low_pad_axis->GetXaxis()->GetBinLowEdge(1);
+        float xMax = h_low_pad_axis->GetXaxis()->GetBinUpEdge(h_low_pad_axis->GetXaxis()->GetLast());
         std::shared_ptr<TF1> fct = std::make_shared<TF1>("fit_function", plot.fit_function.c_str(), xMin, xMax);
 
-        h_data_cloned->Fit(fct.get(), "MRNEQ");
+        ratio->Fit(fct.get(), "MRNEQ");
 
         std::shared_ptr<TH1> errors = std::make_shared<TH1D>("errors", "errors", 100, xMin, xMax);
         errors->SetDirectory(nullptr);
@@ -397,12 +448,14 @@ namespace plotIt {
         m_plotIt.addTemporaryObject(fct);
       }
 
-      h_data_cloned->Draw("P E X0 same");
+      h_low_pad_axis->Draw("P E X0 same");
+      ratio->Draw("P same");
 
       // Hide top pad label
       hideXTitle(toDraw[0].first);
 
-      m_plotIt.addTemporaryObject(h_data_cloned);
+      m_plotIt.addTemporaryObject(h_low_pad_axis);
+      m_plotIt.addTemporaryObject(ratio);
       m_plotIt.addTemporaryObject(h_systematics);
       m_plotIt.addTemporaryObject(hi_pad);
       m_plotIt.addTemporaryObject(low_pad);
@@ -453,7 +506,7 @@ namespace plotIt {
       h->SetLineColor(style->fill_color);
   }
 
-  void TH1Plotter::addOverflow(TH1* h, const Plot& plot) {
+  void TH1Plotter::addOverflow(TH1* h, Type type, const Plot& plot) {
 
     size_t first_bin = 1;
     size_t last_bin = h->GetNbinsX();
@@ -492,9 +545,11 @@ namespace plotIt {
     float last_bin_sumw2 = h->GetBinError(last_bin) * h->GetBinError(last_bin);
 
     h->SetBinContent(first_bin, first_bin_content + underflow);
-    h->SetBinError(first_bin, sqrt(underflow_sumw2 + first_bin_sumw2));
+    if (type != DATA)
+        h->SetBinError(first_bin, sqrt(underflow_sumw2 + first_bin_sumw2));
 
     h->SetBinContent(last_bin, last_bin_content + overflow);
-    h->SetBinError(last_bin, sqrt(overflow_sumw2 + last_bin_sumw2));
+    if (type != DATA)
+        h->SetBinError(last_bin, sqrt(overflow_sumw2 + last_bin_sumw2));
   }
 }

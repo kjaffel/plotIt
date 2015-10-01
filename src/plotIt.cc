@@ -210,6 +210,10 @@ namespace plotIt {
 
       if (node["show-overflow"])
           m_config.show_overflow = node["show-overflow"].as<bool>();
+
+      m_config.errors_type = Poisson;
+      if (node["errors-type"])
+          m_config.errors_type = string_to_errors_type(node["errors-type"].as<std::string>());
     }
 
     // Database
@@ -472,6 +476,11 @@ namespace plotIt {
         plot.show_overflow = node["show-overflow"].as<bool>();
       else
         plot.show_overflow = m_config.show_overflow;
+
+      if (node["errors-type"])
+        plot.errors_type = string_to_errors_type(node["errors-type"].as<std::string>());
+      else
+        plot.errors_type = m_config.errors_type;
 
       if (node["binning-x"])
         plot.binning_x = node["binning-x"].as<uint16_t>();

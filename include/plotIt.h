@@ -38,6 +38,25 @@ namespace plotIt {
     DATA
   };
 
+  enum ErrorsType {
+      Normal = 0,
+      Poisson = 1,
+      Poisson2 = 2
+  };
+
+  inline ErrorsType string_to_errors_type(const std::string& s) {
+      ErrorsType errors_type;
+
+      if (s == "normal")
+          errors_type = Normal;
+      else if (s == "poisson2")
+          errors_type = Poisson2;
+      else 
+          errors_type = Poisson;
+
+      return errors_type;
+  }
+
   struct PlotStyle;
   class plotIt;
   struct Group;
@@ -205,6 +224,8 @@ namespace plotIt {
 
     Position legend_position;
 
+    ErrorsType errors_type = Poisson;
+
     void print() {
       std::cout << "Plot '" << name << "'" << std::endl;
       std::cout << "\tx_axis: " << x_axis << std::endl;
@@ -261,6 +282,8 @@ namespace plotIt {
 
     std::string mode = "hist"; // "tree" or "hist"
     std::string tree_name;
+
+    ErrorsType errors_type = Poisson;
 
     Configuration() {
       width = height = 800;
