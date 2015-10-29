@@ -245,22 +245,6 @@ namespace plotIt {
         std::cout << "Connected." << std::endl << std::endl;
     }
 
-    YAML::Node groups = f["groups"];
-
-    for (YAML::const_iterator it = groups.begin(); it != groups.end(); ++it) {
-      Group group;
-
-      group.name = it->first.as<std::string>();
-
-      YAML::Node node = it->second;
-
-      group.plot_style = std::make_shared<PlotStyle>();
-      group.plot_style->loadFromYAML(node, File(), *this);
-
-      m_groups[group.name] = group;
-    }
-
-
     YAML::Node files = f["files"];
 
     for (YAML::const_iterator it = files.begin(); it != files.end(); ++it) {
@@ -314,10 +298,6 @@ namespace plotIt {
 
       if (node["group"]) {
         file.group = node["group"].as<std::string>();
-
-        if (! m_groups.count(file.group)) {
-          file.group = "";
-        }
       }
 
       if (node["systematics"]) {
@@ -346,10 +326,8 @@ namespace plotIt {
         }
       }
 
-      if (file.group.length() == 0) {
-        file.plot_style = std::make_shared<PlotStyle>();
-        file.plot_style->loadFromYAML(node, file, *this);
-      }
+      file.plot_style = std::make_shared<PlotStyle>();
+      file.plot_style->loadFromYAML(node, file, *this);
 
       // Query the database if needed
       if (file.cross_section < 0 || file.generated_events < 0) {
@@ -375,6 +353,38 @@ namespace plotIt {
     std::sort(m_files.begin(), m_files.end(), [](const File& a, const File& b) {
       return a.order < b.order;
      });
+
+    YAML::Node groups = f["groups"];
+
+    for (YAML::const_iterator it = groups.begin(); it != groups.end(); ++it) {
+      Group group;
+
+      group.name = it->first.as<std::string>();
+
+      YAML::Node node = it->second;
+
+      // Find the first file belonging to this group, and use its type to set
+      // default style values
+      const auto file = std::find_if(m_files.begin(), m_files.end(), [&group](const File& file) {
+          return file.group == group.name;
+        });
+
+      // Is this group actually used?
+      if (file == m_files.end())
+          continue;
+
+      group.plot_style = std::make_shared<PlotStyle>();
+      group.plot_style->loadFromYAML(node, *file, *this);
+
+      m_groups[group.name] = group;
+    }
+
+    // Remove non-existant groups from files
+    for (auto& file: m_files) {
+      if (!file.group.empty() && !m_groups.count(file.group)) {
+        file.group = "";
+      }
+    }
 
     if (! f["plots"]) {
       throw YAML::ParserException(YAML::Mark::null_mark(), "You must specify at least one plot in your configuration file");
@@ -528,8 +538,9 @@ namespace plotIt {
   void plotIt::addToLegend(TLegend& legend, Type type) {
     for (File& file: m_files) {
       if (file.type == type) {
-        if (file.group.length() > 0 && m_groups.count(file.group) &&
-            !m_groups[file.group].added && m_groups[file.group].plot_style->legend.length() > 0) {
+        if (file.group.length() > 0 && m_groups.count(file.group) && m_groups[file.group].plot_style->legend.length() > 0) {
+          if (m_groups[file.group].added)
+            return;
           legend.AddEntry(file.object, m_groups[file.group].plot_style->legend.c_str(), m_groups[file.group].plot_style->legend_style.c_str());
           m_groups[file.group].added = true;
         } else if (file.plot_style.get() && file.plot_style->legend.length() > 0) {

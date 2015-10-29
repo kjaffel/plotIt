@@ -135,7 +135,7 @@ namespace plotIt {
     std::string name;
     std::shared_ptr<PlotStyle> plot_style;
 
-    bool added;
+    bool added = false;
   };
 
   struct Point {
