@@ -57,6 +57,19 @@ namespace plotIt {
       return errors_type;
   }
 
+  enum Log {
+    False = 0,
+    True,
+    Both
+  };
+
+  inline Log parse_log(const YAML::Node& node) {
+    if (node.as<std::string>() == "both")
+      return Both;
+    else
+      return node.as<bool>() ? True : False;
+  }
+
   struct PlotStyle;
   class plotIt;
   struct Group;
@@ -181,6 +194,7 @@ namespace plotIt {
 
   struct Plot {
     std::string name;
+    std::string output_name;
     std::string exclude;
 
     bool normalized;
