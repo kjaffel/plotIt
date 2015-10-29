@@ -1,19 +1,22 @@
 'data.root':
   type: data
-  legend: "Data"
+  legend: 'Data'
 
 'MC_sample1.root':
   type: mc
+  sample-name: "TTJets_TuneCUETP8M1_amcatnloFXFX_25ns_15c5fa1_c106444"
   cross-section: 245.8
-  generated-events: 21675970
+  generated-events: 2167
   fill-color: "#D95B43"
   legend: "MC 1"
   order: 1
+  group: mygroup
 
 'MC_sample2.root':
   type: mc
   cross-section: 666.3
-  generated-events: 24045248
+  generated-events: 2404
   fill-color: '#53777A'
   legend: 'MC 2'
   order: 0
+  group: mygroup

@@ -8,12 +8,12 @@
 #include <iostream>
 
 void generate_trees() {
-    const float luminosity = 100;  // 100 /pb
+    const float luminosity = 1;
 
-    const float mc1_gen_events = 21675970;
+    const float mc1_gen_events = 2167;
     const float mc1_xsection = 245.8;
 
-    const float mc2_gen_events = 24045248;
+    const float mc2_gen_events = 2404;
     const float mc2_xsection = 666.3;
 
     const uint32_t n_data = luminosity * ( mc1_xsection + mc2_xsection);
