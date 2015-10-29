@@ -396,6 +396,7 @@ namespace plotIt {
       Plot plot;
 
       plot.name = it->first.as<std::string>();
+      plot.output_name = plot.name;
 
       YAML::Node node = it->second;
       if (node["exclude"])
@@ -416,13 +417,19 @@ namespace plotIt {
       if (node["normalized"])
         plot.normalized = node["normalized"].as<bool>();
 
-      plot.log_y = false;
-      if (node["log-y"])
-        plot.log_y = node["log-y"].as<bool>();
+      Log log_y = False;
+      if (node["log-y"]) {
+        log_y = parse_log(node["log-y"]);
+      }
+      if (log_y != Both)
+        plot.log_y = (bool) log_y;
 
-      plot.log_x = false;
-      if (node["log-x"])
-        plot.log_x = node["log-x"].as<bool>();
+      Log log_x = False;
+      if (node["log-x"]) {
+        log_x = parse_log(node["log-x"]);
+      }
+      if (log_x != Both)
+        plot.log_x = (bool) log_x;
 
       if (node["save-extensions"])
         plot.save_extensions = node["save-extensions"].as<std::vector<std::string>>();
@@ -504,7 +511,37 @@ namespace plotIt {
       if (node["selection-string"])
         plot.selection_string = node["selection-string"].as<std::string>();
 
-      m_plots.push_back(plot);
+      // Handle log
+      std::vector<bool> logs_x;
+      std::vector<bool> logs_y;
+
+      if (log_x == Both) {
+        logs_x.insert(logs_x.end(), {false, true});
+      } else {
+        logs_x.push_back(plot.log_x);
+      }
+
+      if (log_y == Both) {
+        logs_y.insert(logs_y.end(), {false, true});
+      } else {
+        logs_y.push_back(plot.log_y);
+      }
+
+      for (auto x: logs_x) {
+        for (auto y: logs_y) {
+          Plot p = plot;
+          p.log_x = x;
+          p.log_y = y;
+
+          if (p.log_x)
+            p.output_name += "_logx";
+
+          if (p.log_y)
+            p.output_name += "_logy";
+
+          m_plots.push_back(p);
+        }
+      }
     }
 
     m_legend.position.x1 = 0.6;
@@ -733,7 +770,7 @@ namespace plotIt {
       m_temporaryObjects.push_back(t);
     }
 
-    std::string plot_name = plot.name;
+    std::string plot_name = plot.output_name;
     boost::replace_all(plot_name, "/", "_");
     fs::path outputName = m_outputPath / plot_name;
 
@@ -946,6 +983,7 @@ namespace plotIt {
           it = TIter(root->GetListOfKeys());
       }
 
+      std::vector<std::string> matched;
       while ((key = static_cast<TKey*>(it()))) {
         obj = key->ReadObj();
         if (! obj->InheritsFrom(plot.inherits_from.c_str()))
@@ -964,12 +1002,13 @@ namespace plotIt {
           // The same object can be stored multiple time with a different key
           // The iterator returns first the object with the highest key, which is the most recent object
           // Check if we already have a plot with the same exact name
-          if (std::find_if(plots.begin(), plots.end(), [&expanded_plot_name](const Plot& p) { return p.name == expanded_plot_name; }) != plots.end()) {
+          if (std::find_if(matched.begin(), matched.end(), [&expanded_plot_name](const std::string& p) { return p == expanded_plot_name; }) != matched.end()) {
             continue;
           }
 
           // Got it!
           match = true;
+          matched.push_back(expanded_plot_name);
           plots.push_back(plot.Clone(expanded_plot_name));
         }
       }

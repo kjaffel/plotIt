@@ -5,7 +5,7 @@ configuration:
   experiment: "CMS"
   extra-label: "Preliminary"
   root: 'files'
-  luminosity: 100
+  luminosity: 1
   luminosity-error: 0.026
   error-fill-style: 3154
   error-fill-color: "#ee556270"
@@ -21,12 +21,26 @@ plots:
     x-axis: "X axis"
     y-axis: "Y axis"
     y-axis-format: "%1% / %2$.0f GeV"
+    y-axis-show-zero: true
+    x-axis-range: [2, 9.5]
+    show-overflow: true
+    show-ratio: true
     normalized: false
+    fit-ratio: true
+    rebin: 4
+    log-y: 'both'
+    save-extensions: ['pdf']
 
   'histo2':
     x-axis: "X axis"
     y-axis: "Y axis"
     normalized: false
+    rebin: 4
+    show-overflow: true
 
 legend:
   position: [0.25, 0.78, 0.45, 0.9]
+
+groups:
+  data:
+    legend: 'Data'
