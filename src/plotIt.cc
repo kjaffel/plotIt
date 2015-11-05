@@ -396,7 +396,6 @@ namespace plotIt {
       Plot plot;
 
       plot.name = it->first.as<std::string>();
-      plot.output_name = plot.name;
 
       YAML::Node node = it->second;
       if (node["exclude"])
@@ -534,10 +533,10 @@ namespace plotIt {
           p.log_y = y;
 
           if (p.log_x)
-            p.output_name += "_logx";
+            p.output_suffix += "_logx";
 
           if (p.log_y)
-            p.output_name += "_logy";
+            p.output_suffix += "_logy";
 
           m_plots.push_back(p);
         }
@@ -770,7 +769,7 @@ namespace plotIt {
       m_temporaryObjects.push_back(t);
     }
 
-    std::string plot_name = plot.output_name;
+    std::string plot_name = plot.name + plot.output_suffix;
     boost::replace_all(plot_name, "/", "_");
     fs::path outputName = m_outputPath / plot_name;
 

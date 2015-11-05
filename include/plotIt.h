@@ -194,7 +194,7 @@ namespace plotIt {
 
   struct Plot {
     std::string name;
-    std::string output_name;
+    std::string output_suffix;
     std::string exclude;
 
     bool normalized;
