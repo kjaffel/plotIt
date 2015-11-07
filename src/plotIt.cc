@@ -576,7 +576,7 @@ namespace plotIt {
       if (file.type == type) {
         if (file.group.length() > 0 && m_groups.count(file.group) && m_groups[file.group].plot_style->legend.length() > 0) {
           if (m_groups[file.group].added)
-            return;
+            continue;
           legend.AddEntry(file.object, m_groups[file.group].plot_style->legend.c_str(), m_groups[file.group].plot_style->legend_style.c_str());
           m_groups[file.group].added = true;
         } else if (file.plot_style.get() && file.plot_style->legend.length() > 0) {
