@@ -297,21 +297,27 @@ namespace plotIt {
     toDraw[0].first->Draw(toDraw[0].second.c_str());
     setRange(toDraw[0].first, plot);
 
-    float safe_margin = 1.20;
+    float safe_margin = .20;
     if (plot.log_y)
       safe_margin = 8;
 
     if (plot.y_axis_range.size() != 2) {
-      setMaximum(toDraw[0].first, maximum * safe_margin);
+      setMaximum(toDraw[0].first, maximum * (1 + safe_margin));
 
       if (minimum <= 0 && plot.log_y) {
+        std::cout << "Warning: detected minimum is negative (" << minimum << ") but log scale is on. Setting minimum to 0.1" << std::endl;
         minimum = 0.1;
       }
+
+      if (!plot.log_y)
+        minimum = minimum * (1 - std::copysign(safe_margin, minimum));
+      else
+        minimum /= safe_margin;
 
       if (plot.y_axis_show_zero && !plot.log_y)
         minimum = 0;
 
-      setMinimum(toDraw[0].first, minimum * 1.20);
+      setMinimum(toDraw[0].first, minimum);
     }
 
     // First, draw MC
