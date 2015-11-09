@@ -124,62 +124,38 @@ namespace plotIt {
   }
 
   void setAxisTitles(TObject* object, Plot& plot) {
-    if (dynamic_cast<TH1*>(object))
-      setAxisTitles(dynamic_cast<TH1*>(object), plot);
-    else if (dynamic_cast<THStack*>(object))
-      setAxisTitles(dynamic_cast<THStack*>(object), plot);
+    CAST_AND_CALL(object, setAxisTitles, plot);
   }
 
   void setDefaultStyle(TObject* object, float topBottomScaleFactor) {
-    if (dynamic_cast<TH1*>(object))
-      setDefaultStyle(dynamic_cast<TH1*>(object), topBottomScaleFactor);
-    else if (dynamic_cast<THStack*>(object))
-      setDefaultStyle(dynamic_cast<THStack*>(object)->GetHistogram(), topBottomScaleFactor);
+    CAST_TO_HIST_AND_CALL(object, setDefaultStyle, topBottomScaleFactor);
   }
 
   void hideXTitle(TObject* object) {
-    if (dynamic_cast<TH1*>(object))
-      hideXTitle(dynamic_cast<TH1*>(object));
-    else if (dynamic_cast<THStack*>(object))
-      hideXTitle(dynamic_cast<THStack*>(object));
+    CAST_AND_CALL(object, hideXTitle);
   }
 
   float getMaximum(TObject* object) {
-    if (dynamic_cast<TH1*>(object))
-      return getMaximum(dynamic_cast<TH1*>(object));
-    else if (dynamic_cast<THStack*>(object))
-      return getMaximum(dynamic_cast<THStack*>(object));
+    CAST_AND_RETURN(object, getMaximum);
 
     return std::numeric_limits<float>::lowest();
   }
 
   float getMinimum(TObject* object) {
-    if (dynamic_cast<TH1*>(object))
-      return getMinimum(dynamic_cast<TH1*>(object));
-    else if (dynamic_cast<THStack*>(object))
-      return getMinimum(dynamic_cast<THStack*>(object));
+    CAST_AND_RETURN(object, getMinimum);
 
     return std::numeric_limits<float>::infinity();
   }
 
-  void setMaximum(TObject* object, float minimum) {
-    if (dynamic_cast<TH1*>(object))
-      setMaximum(dynamic_cast<TH1*>(object), minimum);
-    else if (dynamic_cast<THStack*>(object))
-      setMaximum(dynamic_cast<THStack*>(object), minimum);
+  void setMaximum(TObject* object, float maximum) {
+    CAST_AND_CALL(object, setMaximum, maximum);
   }
 
   void setMinimum(TObject* object, float minimum) {
-    if (dynamic_cast<TH1*>(object))
-      setMinimum(dynamic_cast<TH1*>(object), minimum);
-    else if (dynamic_cast<THStack*>(object))
-      setMinimum(dynamic_cast<THStack*>(object), minimum);
+    CAST_AND_CALL(object, setMinimum, minimum);
   }
 
   void setRange(TObject* object, Plot& plot, bool onlyX/* = false*/) {
-    if (dynamic_cast<TH1*>(object))
-      setRange(dynamic_cast<TH1*>(object), plot, onlyX);
-    else if (dynamic_cast<THStack*>(object))
-      setRange(dynamic_cast<THStack*>(object), plot, onlyX);
+    CAST_AND_CALL(object, setRange, plot, onlyX);
   }
 }
