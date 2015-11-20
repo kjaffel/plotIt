@@ -1042,7 +1042,7 @@ namespace plotIt {
     else if (file.type == SIGNAL)
       legend_style = "l";
     else if (file.type == DATA)
-      legend_style = "p";
+      legend_style = "pe";
 
     if (node["legend-style"])
       legend_style = node["legend-style"].as<std::string>();
