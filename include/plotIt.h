@@ -169,20 +169,19 @@ namespace plotIt {
     float x2 = 0;
     float y2 = 0;
 
+    Position(float x1, float y1, float x2, float y2):
+        x1(x1), y1(y1), x2(x2), y2(y2) {
+        // Empty
+    }
+
+    Position() = default;
+
     bool operator==(const Position& other) {
       return
         (fabs(x1 - other.x1) < 1e-6) &&
         (fabs(y1 - other.y1) < 1e-6) &&
         (fabs(x2 - other.x2) < 1e-6) &&
         (fabs(y2 - other.y2) < 1e-6);
-    }
-
-    bool empty() const {
-      return
-        (x1 == 0) &&
-        (x2 == 0) &&
-        (y1 == 0) &&
-        (y2 == 0);
     }
   };
 
@@ -237,6 +236,7 @@ namespace plotIt {
     std::string extra_label;
 
     Position legend_position;
+    size_t legend_columns;
 
     ErrorsType errors_type = Poisson;
 
@@ -258,7 +258,8 @@ namespace plotIt {
   };
 
   struct Legend {
-    Position position;
+    Position position = {0.6, 0.6, 0.9, 0.9};
+    size_t columns = 1;
   };
 
   struct Configuration {
@@ -348,7 +349,7 @@ namespace plotIt {
       bool expandObjects(File& file, std::vector<Plot>& plots);
       bool loadObject(File& file, const Plot& plot);
 
-      void addToLegend(TLegend& legend, Type type);
+      void fillLegend(TLegend& legend, const Plot& plot);
 
       void parseLumiLabel();
 

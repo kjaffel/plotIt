@@ -37,9 +37,11 @@ plots:
     normalized: false
     rebin: 4
     show-overflow: true
+    legend-columns: 1
 
 legend:
   position: [0.25, 0.78, 0.45, 0.9]
+  columns: 2
 
 groups:
   data:

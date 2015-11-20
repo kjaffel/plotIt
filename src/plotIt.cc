@@ -139,6 +139,17 @@ namespace plotIt {
       return labels;
     };
 
+    if (f["legend"]) {
+      YAML::Node node = f["legend"];
+
+      if (node["position"])
+        m_legend.position = node["position"].as<Position>();
+
+      if (node["columns"])
+          m_legend.columns = node["columns"].as<size_t>();
+    }
+
+
     if (f["configuration"]) {
       YAML::Node node = f["configuration"];
 
@@ -487,6 +498,13 @@ namespace plotIt {
 
       if (node["legend-position"])
         plot.legend_position = node["legend-position"].as<Position>();
+      else
+        plot.legend_position = m_legend.position;
+
+      if (node["legend-columns"])
+        plot.legend_columns = node["legend-columns"].as<size_t>();
+      else
+        plot.legend_columns = m_legend.columns;
 
       if (node["show-overflow"])
         plot.show_overflow = node["show-overflow"].as<bool>();
@@ -543,18 +561,6 @@ namespace plotIt {
       }
     }
 
-    m_legend.position.x1 = 0.6;
-    m_legend.position.y1 = 0.6;
-
-    m_legend.position.x2 = 0.9;
-    m_legend.position.y2 = 0.9;
-    if (f["legend"]) {
-      YAML::Node node = f["legend"];
-
-      if (node["position"])
-        m_legend.position = node["position"].as<Position>();
-    }
-
     parseLumiLabel();
   }
 
@@ -571,19 +577,86 @@ namespace plotIt {
     boost::algorithm::replace_all(m_config.lumi_label_parsed, "%lumi%", lumiStr);
   }
 
-  void plotIt::addToLegend(TLegend& legend, Type type) {
-    for (File& file: m_files) {
-      if (file.type == type) {
-        if (file.group.length() > 0 && m_groups.count(file.group) && m_groups[file.group].plot_style->legend.length() > 0) {
-          if (m_groups[file.group].added)
-            continue;
-          legend.AddEntry(file.object, m_groups[file.group].plot_style->legend.c_str(), m_groups[file.group].plot_style->legend_style.c_str());
-          m_groups[file.group].added = true;
-        } else if (file.plot_style.get() && file.plot_style->legend.length() > 0) {
-          legend.AddEntry(file.object, file.plot_style->legend.c_str(), file.plot_style->legend_style.c_str());
-        }
+  void plotIt::fillLegend(TLegend& legend, const Plot& plot) {
+      struct Entry {
+          TObject* object = nullptr;
+          std::string legend;
+          std::string style;
+
+          Entry() = default;
+          Entry(TObject* object, const std::string& legend, const std::string& style):
+              object(object), legend(legend), style(style) {
+              // Empty
+          }
+      };
+
+      std::vector<Entry> legend_entries[plot.legend_columns];
+
+      auto getEntryFromFile = [&](File& file, Entry& entry) {
+          if (file.group.length() > 0 && m_groups.count(file.group) && m_groups[file.group].plot_style->legend.length() > 0) {
+              if (m_groups[file.group].added)
+                  return false;
+              m_groups[file.group].added = true;
+
+              entry = {file.object, m_groups[file.group].plot_style->legend, m_groups[file.group].plot_style->legend_style};
+          } else if (file.plot_style.get() && file.plot_style->legend.length() > 0) {
+              entry = {file.object, file.plot_style->legend, file.plot_style->legend_style};
+          }
+
+          return true;
+      };
+
+      // First, add data, always on first column
+      for (File& file: m_files) {
+          if (file.type == DATA) {
+              Entry entry;
+              if (getEntryFromFile(file, entry)) {
+                  legend_entries[0].push_back(entry);
+              }
+          }
       }
-    }
+
+      // Then MC, spanning on the remaining columns
+      size_t index = 0;
+      for (File& file: m_files) {
+          if (file.type == MC) {
+              Entry entry;
+              if (getEntryFromFile(file, entry)) {
+                  size_t column_index = (plot.legend_columns == 1) ? 0 : ((index % (plot.legend_columns - 1)) + 1);
+                  legend_entries[column_index].push_back(entry);
+                  index++;
+              }
+          }
+      }
+
+      // Finally signal, also on the first column
+      for (File& file: m_files) {
+          if (file.type == SIGNAL) {
+              Entry entry;
+              if (getEntryFromFile(file, entry)) {
+                  legend_entries[0].push_back(entry);
+              }
+          }
+      }
+
+
+      // Ensure all columns have the same size
+      size_t max_size = 0;
+      for (size_t i = 0; i < plot.legend_columns; i++) {
+          max_size = std::max(max_size, legend_entries[i].size());
+      }
+
+      for (size_t i = 0; i < plot.legend_columns; i++) {
+          legend_entries[i].resize(max_size, Entry());
+      }
+
+      // Add entries to the legend
+      for (size_t i = 0; i < (plot.legend_columns * max_size); i++) {
+          size_t column_index = (i % plot.legend_columns);
+          size_t row_index = static_cast<size_t>(i / static_cast<float>(plot.legend_columns));
+          Entry& entry = legend_entries[column_index][row_index];
+          legend.AddEntry(entry.object, entry.legend.c_str(), entry.style.c_str());
+      }
   }
 
   bool plotIt::plot(Plot& plot) {
@@ -677,19 +750,16 @@ namespace plotIt {
     if (plot.log_x)
       c.SetLogx();
 
-    Position legend_position = m_legend.position;
-    if (!plot.legend_position.empty())
-      legend_position = plot.legend_position;
+    Position legend_position = plot.legend_position;
 
     // Build legend
     TLegend legend(legend_position.x1, legend_position.y1, legend_position.x2, legend_position.y2);
     legend.SetTextFont(43);
     legend.SetFillStyle(0);
     legend.SetBorderSize(0);
+    legend.SetNColumns(plot.legend_columns);
 
-    addToLegend(legend, MC);
-    addToLegend(legend, SIGNAL);
-    addToLegend(legend, DATA);
+    fillLegend(legend, plot);
 
     if (hasMC && plot.show_errors) {
       TLegendEntry* entry = legend.AddEntry("errors", "Uncertainties", "f");
