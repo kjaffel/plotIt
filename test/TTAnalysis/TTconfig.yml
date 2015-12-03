@@ -1,0 +1,33 @@
+configuration:
+  width: 800
+  height: 800
+  luminosity-label: '%lumi% fb^{-1} (13 TeV)'
+  experiment: "CMS"
+  extra-label: "Preliminary"
+  root: "/home/fynu/swertz/scratch/CMSSW_7_4_15/src/cp3_llbb/CommonTools/histFactory/results/151110_0/"
+  luminosity: 1147.954783552 # DoubleEG
+  #luminosity: 1239.399287947 # MuonEG
+  #luminosity: 1252.532361764 # DoubleMuon
+  luminosity-error: 0.12
+  show-overflow: true
+  error-fill-style: 3154
+  error-fill-color: "#ee556270"
+  ratio-fit-error-fill-style: 1001
+  ratio-fit-error-fill-color: "#aa556270"
+  ratio-fit-line-color: "#0B486B"
+
+files:
+  include: ['TTfiles.yml']
+
+plots:
+  include: ['TTplots.yml']
+
+legend:
+  position: [0.7, 0.6, 0.91, 0.91]
+
+groups:
+  data:
+    legend: 'Data'
+  tW:
+    legend: 'Single Top tW'
+    fill-color: '#C02942'
