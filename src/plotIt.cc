@@ -724,24 +724,26 @@ namespace plotIt {
     if (! success)
       return false;
 
-    std::cout << "Summary: " << std::endl;
+    if (m_config.verbose) {
+      std::cout << "Summary: " << std::endl;
 
-    if (hasData) {
-     std::cout << "Data" << std::endl;
-     printSummary(DATA);
-     std::cout << std::endl;
-    }
+      if (hasData) {
+       std::cout << "Data" << std::endl;
+       printSummary(DATA);
+       std::cout << std::endl;
+      }
 
-    if (hasMC) {
-     std::cout << "MC: " << std::endl;
-     printSummary(MC);
-     std::cout << std::endl;
-    }
+      if (hasMC) {
+       std::cout << "MC: " << std::endl;
+       printSummary(MC);
+       std::cout << std::endl;
+      }
 
-    if (hasSignal) {
-     std::cout << std::endl << "Signal: " << std::endl;
-     printSummary(SIGNAL);
-     std::cout << std::endl;
+      if (hasSignal) {
+       std::cout << std::endl << "Signal: " << std::endl;
+       printSummary(SIGNAL);
+       std::cout << std::endl;
+      }
     }
 
     if (plot.log_y)
@@ -1189,6 +1191,8 @@ int main(int argc, char** argv) {
 
     TCLAP::SwitchArg ignoreScaleArg("", "ignore-scales", "Ignore any scales present in the configuration file", cmd, false);
 
+    TCLAP::SwitchArg verboseArg("v", "verbose", "Verbose output (print summary)", cmd, false);
+
     TCLAP::UnlabeledValueArg<std::string> configFileArg("configFile", "configuration file", true, "", "string", cmd);
 
     cmd.parse(argc, argv);
@@ -1204,6 +1208,7 @@ int main(int argc, char** argv) {
 
     plotIt::plotIt p(outputPath, configFileArg.getValue());
     p.getConfigurationForEditing().ignore_scales = ignoreScaleArg.getValue();
+    p.getConfigurationForEditing().verbose = verboseArg.getValue();
 
     p.plotAll();
 

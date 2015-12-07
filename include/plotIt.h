@@ -293,6 +293,7 @@ namespace plotIt {
     std::string root;
 
     bool ignore_scales = false;
+    bool verbose = false;
     bool show_overflow = false;
 
     std::string mode = "hist"; // "tree" or "hist"
