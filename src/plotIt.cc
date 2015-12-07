@@ -466,7 +466,7 @@ namespace plotIt {
       if (node["show-errors"])
         plot.show_errors = node["show-errors"].as<bool>();
       else
-        plot.show_errors = false;
+        plot.show_errors = true;
 
       if (node["x-axis-range"])
         plot.x_axis_range = node["x-axis-range"].as<std::vector<float>>();
