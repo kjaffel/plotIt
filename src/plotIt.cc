@@ -687,11 +687,21 @@ namespace plotIt {
       float sum_n_events = 0;
       float sum_n_events_error = 0;
 
-      printf("%50s%18s ± %11s%15s%19s  ± %20s\n", " ", "N", u8"ΔN", " ", u8"ε", u8"Δε");
+      auto truncate = [](const std::string& str, size_t max_len) -> std::string {
+        if (str.length() > max_len - 1) {
+          std::string ret = str;
+          ret.resize(max_len - 1);
+          return ret + u8"…";
+        } else {
+          return str;
+        }
+      };
+
+      printf("%50s%18s ± %11s%4s%10s ± %10s\n", " ", "N", u8"ΔN", " ", u8"ε", u8"Δε");
       for (File& file: m_files) {
         if (file.type == type) {
           fs::path path(file.path);
-          printf("%50s%18.2f ± %10.2f%15s%18.5f%% ± %18.5f%%\n", path.stem().c_str(), file.summary.n_events, file.summary.n_events_error, " ", file.summary.efficiency * 100, file.summary.efficiency_error * 100);
+          printf("%50s%18.2f ± %10.2f%5s%3.5f%% ± %3.5f%%\n", truncate(path.stem().native(), 50).c_str(), file.summary.n_events, file.summary.n_events_error, " ", file.summary.efficiency * 100, file.summary.efficiency_error * 100);
 
           sum_n_events += file.summary.n_events;
           sum_n_events_error += file.summary.n_events_error * file.summary.n_events_error;
@@ -710,7 +720,7 @@ namespace plotIt {
           if (file.type == type) {
             for (Systematic& s: file.systematics) {
               fs::path path(s.path);
-              printf("%50s%18s ± %10.2f\n", path.stem().c_str(), " ", s.summary.n_events_error);
+              printf("%50s%18s ± %10.2f\n", truncate(path.stem().native(), 50).c_str(), " ", s.summary.n_events_error);
 
               sum_n_events_error += s.summary.n_events_error * s.summary.n_events_error;
             }
