@@ -1,0 +1,59 @@
+### Drell-Yan ###
+
+'DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX_MiniAODv2_v1.1.0+7415-6-g42bf8af_TTAnalysis_e595725_histos.root':
+  type: mc
+  cross-section: 6025.2
+  generated-events: 4.52058e+11
+  legend: 'DY_M-50'
+  fill-color: '#CF00A0B0'
+  order: 2
+
+'DYJetsToLL_M-10to50_TuneCUETP8M1_13TeV-amcatnloFXFX_MiniAODv2_v1.1.0+7415-6-g42bf8af_TTAnalysis_e595725_histos.root':
+  type: mc
+  cross-section: 18610
+  generated-events: 9.0583e+11
+  legend: 'DY_M-10to50'
+  fill-color: '#00A0B0'
+  order: 1
+
+### TTbar ###
+
+'TT_TuneCUETP8M1_13TeV-powheg-pythia8_MiniAODv2_v1.1.0+7415-6-g42bf8af_TTAnalysis_e595725_histos.root':
+  type: mc
+  cross-section: 831.76
+  generated-events: 96696300.0
+  legend: 'TT'
+  fill-color: '#EB6841'
+  order: 0
+
+### SingleTop ###
+
+'ST_tW_top_5f_inclusiveDecays_13TeV-powheg_MiniAODv2_v1.1.0+7415-6-g42bf8af_TTAnalysis_e595725_histos.root':
+  type: mc
+  cross-section: 35.6
+  generated-events: 995600.0
+  group: tW
+  #legend: 'Single Top tW'
+  #fill-color: '#C02942'
+  order: -1
+
+'ST_tW_antitop_5f_inclusiveDecays_13TeV-powheg_MiniAODv2_v1.1.0+7415-6-g42bf8af_TTAnalysis_e595725_histos.root':
+  type: mc
+  cross-section: 35.6
+  generated-events: 988500.0
+  group: tW
+  #legend: 'Single Top tW'
+  #fill-color: '#C02942'
+  order: -2
+
+'ST_t-channel_4f_leptonDecays_13TeV-amcatnlo_MiniAODv2_v1.1.0+7415-6-g42bf8af_TTAnalysis_e595725_histos.root':
+  type: mc
+  cross-section: 70.69
+  generated-events: 2016570000.0
+  legend: 'Single Top t-channel'
+  fill-color: '#CFC02942'
+  order: -3
+
+
+### VV: #ECD078
+### W+jets: #6A4A3C
