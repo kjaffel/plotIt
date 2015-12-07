@@ -879,68 +879,100 @@ namespace plotIt {
       }
     }
 
+    std::cout << "Loading all plots..." << std::endl;
+    for (File& file: m_files) {
+      loadAllObjects(file, plots);
+    }
+    std::cout << "Done." << std::endl;
+
+
     for (Plot& plot: plots) {
       plotIt::plot(plot);
     }
+  }
+
+  bool plotIt::loadAllObjects(File& file, const std::vector<Plot>& plots) {
+
+    file.object = nullptr;
+    file.objects.clear();
+
+    if (m_config.mode == "tree") {
+
+        if (!file.chain.get()) {
+          file.chain.reset(new TChain(m_config.tree_name.c_str()));
+          file.chain->Add(file.path.c_str());
+        }
+
+        for (const auto& plot: plots) {
+          std::shared_ptr<TH1> hist(new TH1F(plot.name.c_str(), "", plot.binning_x, plot.x_axis_range[0], plot.x_axis_range[1]));
+          hist->GetDirectory()->cd();
+
+          file.chain->Draw((plot.draw_string + ">>" + plot.name).c_str(), plot.selection_string.c_str());
+
+          hist->SetDirectory(nullptr);
+          file.objects.emplace(plot.name, hist.get());
+
+          m_temporaryObjects.push_back(hist);
+        }
+
+        return true;
+    }
+
+    file.handle.reset(TFile::Open(file.path.c_str()));
+    if (! file.handle.get())
+      return false;
+
+    std::vector<std::shared_ptr<TFile>> systematic_files;
+    for (Systematic& syst: file.systematics) {
+      syst.handle.reset(TFile::Open(syst.path.c_str()));
+    }
+
+    for (const auto& plot: plots) {
+      TObject* obj = file.handle->Get(plot.name.c_str());
+
+      if (obj) {
+        file.objects.emplace(plot.name, obj);
+
+        // Load systematics histograms
+        for (Systematic& syst: file.systematics) {
+
+          syst.object = nullptr;
+          syst.objects.clear();
+
+          obj = syst.handle->Get(plot.name.c_str());
+          if (obj) {
+            syst.objects.emplace(plot.name, obj);
+          }
+        }
+
+        continue;
+      }
+
+      // Should not be possible!
+      std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
+      return false;
+    }
+
+    return true;
   }
 
   bool plotIt::loadObject(File& file, const Plot& plot) {
 
     file.object = nullptr;
 
-    if (m_config.mode == "tree") {
+    auto it = file.objects.find(plot.name);
 
-        if (!file.chain.get()) {
-          file.chain.reset(new TChain(m_config.tree_name.c_str()));
-        }
-
-        file.chain->Add(file.path.c_str());
-
-        std::shared_ptr<TH1> hist(new TH1F(plot.name.c_str(), "", plot.binning_x, plot.x_axis_range[0], plot.x_axis_range[1]));
-        hist->GetDirectory()->cd();
-
-        file.chain->Draw((plot.draw_string + ">>" + plot.name).c_str(), plot.selection_string.c_str());
-
-        hist->SetDirectory(nullptr);
-        file.object = hist.get();
-
-        m_temporaryObjects.push_back(hist);
-
-        return true;
-    }
-
-    std::shared_ptr<TFile> input(TFile::Open(file.path.c_str()));
-    if (! input.get())
+    if (it == file.objects.end()) {
+      std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
       return false;
-
-    TObject* obj = input->Get(plot.name.c_str());
-
-    if (obj) {
-      m_temporaryObjects.push_back(input);
-      file.object = obj;
-
-      // Load systematics histograms
-      for (Systematic& syst: file.systematics) {
-
-        syst.object = nullptr;
-
-        std::shared_ptr<TFile> input_syst(TFile::Open(syst.path.c_str()));
-        if (! input_syst.get())
-          continue;
-
-        obj = input_syst->Get(plot.name.c_str());
-        if (obj) {
-          m_temporaryObjects.push_back(input_syst);
-          syst.object = obj;
-        }
-      }
-
-      return true;
     }
 
-    // Should not be possible!
-    std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
-    return false;
+    file.object = file.objects[plot.name];
+    for (Systematic& syst: file.systematics) {
+      syst.object = syst.objects[plot.name];
+    }
+
+    return true;
   }
 
   bool plotIt::expandFiles() {
