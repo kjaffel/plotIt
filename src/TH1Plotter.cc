@@ -305,8 +305,9 @@ namespace plotIt {
       setMaximum(toDraw[0].first, maximum * (1 + safe_margin));
 
       if (minimum <= 0 && plot.log_y) {
-        std::cout << "Warning: detected minimum is negative (" << minimum << ") but log scale is on. Setting minimum to 0.1" << std::endl;
-        minimum = 0.1;
+        double old_minimum = minimum;
+        minimum = getPositiveMinimum(toDraw[0].first);
+        std::cout << "Warning: detected minimum is negative (" << old_minimum << ") but log scale is on. Setting minimum to " << minimum << std::endl;
       }
 
       if (!plot.log_y)

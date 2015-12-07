@@ -158,4 +158,20 @@ namespace plotIt {
   void setRange(TObject* object, Plot& plot, bool onlyX/* = false*/) {
     CAST_AND_CALL(object, setRange, plot, onlyX);
   }
+
+  float getPositiveMinimum(TObject* object) {
+      if (dynamic_cast<TH1*>(object))
+          return getPositiveMinimum(dynamic_cast<TH1*>(object));
+      else if (dynamic_cast<THStack*>(object)) {
+          float minimum = std::numeric_limits<float>::infinity();
+          THStack* stack = dynamic_cast<THStack*>(object);
+          for (size_t n = 0; n < (size_t) stack->GetNhists(); n++) {
+              minimum = std::min(minimum, getPositiveMinimum(static_cast<TH1*>(stack->GetStack()->At(n))));
+          }
+
+          return minimum;
+      }
+
+      return 0;
+  }
 }
