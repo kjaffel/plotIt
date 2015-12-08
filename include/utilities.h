@@ -29,6 +29,12 @@ namespace plotIt {
       else if (dynamic_cast<THStack*>(OBJECT)) \
         FUNCTION(dynamic_cast<THStack*>(OBJECT)->GetHistogram(), ##__VA_ARGS__);
 
+  #define CAST_TO_HIST_AND_RETURN(OBJECT, FUNCTION, ...) \
+      if (dynamic_cast<TH1*>(OBJECT)) \
+        return FUNCTION(dynamic_cast<TH1*>(OBJECT), ##__VA_ARGS__); \
+      else if (dynamic_cast<THStack*>(OBJECT)) \
+        return FUNCTION(dynamic_cast<THStack*>(OBJECT)->GetHistogram(), ##__VA_ARGS__);
+
   template<class T>
     void setAxisTitles(T* object, Plot& plot) {
       if (plot.x_axis.length() > 0 && object->GetXaxis()) {
@@ -119,4 +125,11 @@ namespace plotIt {
     }
 
   void setRange(TObject* object, Plot& plot, bool onlyX = false);
+
+  template<class T>
+  float getPositiveMinimum(T* object) {
+    return object->GetMinimum(0);
+  }
+
+  float getPositiveMinimum(TObject* object);
 }

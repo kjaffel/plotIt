@@ -466,7 +466,7 @@ namespace plotIt {
       if (node["show-errors"])
         plot.show_errors = node["show-errors"].as<bool>();
       else
-        plot.show_errors = false;
+        plot.show_errors = true;
 
       if (node["x-axis-range"])
         plot.x_axis_range = node["x-axis-range"].as<std::vector<float>>();
@@ -687,11 +687,21 @@ namespace plotIt {
       float sum_n_events = 0;
       float sum_n_events_error = 0;
 
-      printf("%50s%18s ± %11s%15s%19s  ± %20s\n", " ", "N", u8"ΔN", " ", u8"ε", u8"Δε");
+      auto truncate = [](const std::string& str, size_t max_len) -> std::string {
+        if (str.length() > max_len - 1) {
+          std::string ret = str;
+          ret.resize(max_len - 1);
+          return ret + u8"…";
+        } else {
+          return str;
+        }
+      };
+
+      printf("%50s%18s ± %11s%4s%10s ± %10s\n", " ", "N", u8"ΔN", " ", u8"ε", u8"Δε");
       for (File& file: m_files) {
         if (file.type == type) {
           fs::path path(file.path);
-          printf("%50s%18.2f ± %10.2f%15s%18.5f%% ± %18.5f%%\n", path.stem().c_str(), file.summary.n_events, file.summary.n_events_error, " ", file.summary.efficiency * 100, file.summary.efficiency_error * 100);
+          printf("%50s%18.2f ± %10.2f%5s%3.5f%% ± %3.5f%%\n", truncate(path.stem().native(), 50).c_str(), file.summary.n_events, file.summary.n_events_error, " ", file.summary.efficiency * 100, file.summary.efficiency_error * 100);
 
           sum_n_events += file.summary.n_events;
           sum_n_events_error += file.summary.n_events_error * file.summary.n_events_error;
@@ -710,7 +720,7 @@ namespace plotIt {
           if (file.type == type) {
             for (Systematic& s: file.systematics) {
               fs::path path(s.path);
-              printf("%50s%18s ± %10.2f\n", path.stem().c_str(), " ", s.summary.n_events_error);
+              printf("%50s%18s ± %10.2f\n", truncate(path.stem().native(), 50).c_str(), " ", s.summary.n_events_error);
 
               sum_n_events_error += s.summary.n_events_error * s.summary.n_events_error;
             }
@@ -724,24 +734,26 @@ namespace plotIt {
     if (! success)
       return false;
 
-    std::cout << "Summary: " << std::endl;
+    if (m_config.verbose) {
+      std::cout << "Summary: " << std::endl;
 
-    if (hasData) {
-     std::cout << "Data" << std::endl;
-     printSummary(DATA);
-     std::cout << std::endl;
-    }
+      if (hasData) {
+       std::cout << "Data" << std::endl;
+       printSummary(DATA);
+       std::cout << std::endl;
+      }
 
-    if (hasMC) {
-     std::cout << "MC: " << std::endl;
-     printSummary(MC);
-     std::cout << std::endl;
-    }
+      if (hasMC) {
+       std::cout << "MC: " << std::endl;
+       printSummary(MC);
+       std::cout << std::endl;
+      }
 
-    if (hasSignal) {
-     std::cout << std::endl << "Signal: " << std::endl;
-     printSummary(SIGNAL);
-     std::cout << std::endl;
+      if (hasSignal) {
+       std::cout << std::endl << "Signal: " << std::endl;
+       printSummary(SIGNAL);
+       std::cout << std::endl;
+      }
     }
 
     if (plot.log_y)
@@ -877,68 +889,100 @@ namespace plotIt {
       }
     }
 
+    std::cout << "Loading all plots..." << std::endl;
+    for (File& file: m_files) {
+      loadAllObjects(file, plots);
+    }
+    std::cout << "Done." << std::endl;
+
+
     for (Plot& plot: plots) {
       plotIt::plot(plot);
     }
+  }
+
+  bool plotIt::loadAllObjects(File& file, const std::vector<Plot>& plots) {
+
+    file.object = nullptr;
+    file.objects.clear();
+
+    if (m_config.mode == "tree") {
+
+        if (!file.chain.get()) {
+          file.chain.reset(new TChain(m_config.tree_name.c_str()));
+          file.chain->Add(file.path.c_str());
+        }
+
+        for (const auto& plot: plots) {
+          std::shared_ptr<TH1> hist(new TH1F(plot.name.c_str(), "", plot.binning_x, plot.x_axis_range[0], plot.x_axis_range[1]));
+          hist->GetDirectory()->cd();
+
+          file.chain->Draw((plot.draw_string + ">>" + plot.name).c_str(), plot.selection_string.c_str());
+
+          hist->SetDirectory(nullptr);
+          file.objects.emplace(plot.name, hist.get());
+
+          m_temporaryObjects.push_back(hist);
+        }
+
+        return true;
+    }
+
+    file.handle.reset(TFile::Open(file.path.c_str()));
+    if (! file.handle.get())
+      return false;
+
+    std::vector<std::shared_ptr<TFile>> systematic_files;
+    for (Systematic& syst: file.systematics) {
+      syst.handle.reset(TFile::Open(syst.path.c_str()));
+    }
+
+    for (const auto& plot: plots) {
+      TObject* obj = file.handle->Get(plot.name.c_str());
+
+      if (obj) {
+        file.objects.emplace(plot.name, obj);
+
+        // Load systematics histograms
+        for (Systematic& syst: file.systematics) {
+
+          syst.object = nullptr;
+          syst.objects.clear();
+
+          obj = syst.handle->Get(plot.name.c_str());
+          if (obj) {
+            syst.objects.emplace(plot.name, obj);
+          }
+        }
+
+        continue;
+      }
+
+      // Should not be possible!
+      std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
+      return false;
+    }
+
+    return true;
   }
 
   bool plotIt::loadObject(File& file, const Plot& plot) {
 
     file.object = nullptr;
 
-    if (m_config.mode == "tree") {
+    auto it = file.objects.find(plot.name);
 
-        if (!file.chain.get()) {
-          file.chain.reset(new TChain(m_config.tree_name.c_str()));
-        }
-
-        file.chain->Add(file.path.c_str());
-
-        std::shared_ptr<TH1> hist(new TH1F(plot.name.c_str(), "", plot.binning_x, plot.x_axis_range[0], plot.x_axis_range[1]));
-        hist->GetDirectory()->cd();
-
-        file.chain->Draw((plot.draw_string + ">>" + plot.name).c_str(), plot.selection_string.c_str());
-
-        hist->SetDirectory(nullptr);
-        file.object = hist.get();
-
-        m_temporaryObjects.push_back(hist);
-
-        return true;
-    }
-
-    std::shared_ptr<TFile> input(TFile::Open(file.path.c_str()));
-    if (! input.get())
+    if (it == file.objects.end()) {
+      std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
       return false;
-
-    TObject* obj = input->Get(plot.name.c_str());
-
-    if (obj) {
-      m_temporaryObjects.push_back(input);
-      file.object = obj;
-
-      // Load systematics histograms
-      for (Systematic& syst: file.systematics) {
-
-        syst.object = nullptr;
-
-        std::shared_ptr<TFile> input_syst(TFile::Open(syst.path.c_str()));
-        if (! input_syst.get())
-          continue;
-
-        obj = input_syst->Get(plot.name.c_str());
-        if (obj) {
-          m_temporaryObjects.push_back(input_syst);
-          syst.object = obj;
-        }
-      }
-
-      return true;
     }
 
-    // Should not be possible!
-    std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
-    return false;
+    file.object = file.objects[plot.name];
+    for (Systematic& syst: file.systematics) {
+      syst.object = syst.objects[plot.name];
+    }
+
+    return true;
   }
 
   bool plotIt::expandFiles() {
@@ -1189,6 +1233,8 @@ int main(int argc, char** argv) {
 
     TCLAP::SwitchArg ignoreScaleArg("", "ignore-scales", "Ignore any scales present in the configuration file", cmd, false);
 
+    TCLAP::SwitchArg verboseArg("v", "verbose", "Verbose output (print summary)", cmd, false);
+
     TCLAP::UnlabeledValueArg<std::string> configFileArg("configFile", "configuration file", true, "", "string", cmd);
 
     cmd.parse(argc, argv);
@@ -1204,6 +1250,7 @@ int main(int argc, char** argv) {
 
     plotIt::plotIt p(outputPath, configFileArg.getValue());
     p.getConfigurationForEditing().ignore_scales = ignoreScaleArg.getValue();
+    p.getConfigurationForEditing().verbose = verboseArg.getValue();
 
     p.plotAll();
 

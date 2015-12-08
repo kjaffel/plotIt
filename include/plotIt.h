@@ -93,6 +93,8 @@ namespace plotIt {
   struct Systematic {
     std::string path;
     TObject* object;
+    std::map<std::string, TObject*> objects;
+    std::shared_ptr<TFile> handle;
 
     Summary summary;
   };
@@ -115,6 +117,7 @@ namespace plotIt {
     Type type;
 
     TObject* object;
+    std::map<std::string, TObject*> objects;
 
     std::vector<Systematic> systematics;
 
@@ -122,6 +125,7 @@ namespace plotIt {
     Summary summary;
 
     std::shared_ptr<TChain> chain;
+    std::shared_ptr<TFile> handle;
   };
 
   struct PlotStyle {
@@ -293,6 +297,7 @@ namespace plotIt {
     std::string root;
 
     bool ignore_scales = false;
+    bool verbose = false;
     bool show_overflow = false;
 
     std::string mode = "hist"; // "tree" or "hist"
@@ -347,6 +352,7 @@ namespace plotIt {
 
       bool expandFiles();
       bool expandObjects(File& file, std::vector<Plot>& plots);
+      bool loadAllObjects(File& file, const std::vector<Plot>& plots);
       bool loadObject(File& file, const Plot& plot);
 
       void fillLegend(TLegend& legend, const Plot& plot);
