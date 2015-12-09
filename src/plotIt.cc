@@ -920,7 +920,7 @@ namespace plotIt {
           file.chain->Draw((plot.draw_string + ">>" + plot.name).c_str(), plot.selection_string.c_str());
 
           hist->SetDirectory(nullptr);
-          file.objects.emplace(plot.name, hist.get());
+          file.objects.emplace(plot.uid, hist.get());
 
           m_temporaryObjects.push_back(hist);
         }
@@ -941,7 +941,10 @@ namespace plotIt {
       TObject* obj = file.handle->Get(plot.name.c_str());
 
       if (obj) {
-        file.objects.emplace(plot.name, obj);
+        std::shared_ptr<TObject> cloned_obj(obj->Clone());
+        m_temporaryObjectsRuntime.push_back(cloned_obj);
+
+        file.objects.emplace(plot.uid, cloned_obj.get());
 
         // Load systematics histograms
         for (Systematic& syst: file.systematics) {
@@ -951,7 +954,9 @@ namespace plotIt {
 
           obj = syst.handle->Get(plot.name.c_str());
           if (obj) {
-            syst.objects.emplace(plot.name, obj);
+            std::shared_ptr<TObject> cloned_obj(obj->Clone());
+            m_temporaryObjectsRuntime.push_back(cloned_obj);
+            syst.objects.emplace(plot.uid, cloned_obj.get());
           }
         }
 
@@ -970,16 +975,16 @@ namespace plotIt {
 
     file.object = nullptr;
 
-    auto it = file.objects.find(plot.name);
+    auto it = file.objects.find(plot.uid);
 
     if (it == file.objects.end()) {
       std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
       return false;
     }
 
-    file.object = file.objects[plot.name];
+    file.object = it->second;
     for (Systematic& syst: file.systematics) {
-      syst.object = syst.objects[plot.name];
+      syst.object = syst.objects[plot.uid];
     }
 
     return true;
