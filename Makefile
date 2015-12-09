@@ -27,7 +27,7 @@ AR            = ar
 ARFLAGS       = -cq
 
 CXXFLAGS	   += $(ROOTCFLAGS) $(INCLUDES) -Iinclude/ -Iexternal/include/ -I$(shell echo $(BOOST_ROOT))/include
-LIBS  		    = $(ROOTLIBS) -lboost_filesystem -lboost_regex -lboost_system $(shell mysql_config --libs)
+LIBS  		    = $(ROOTLIBS) -lboost_filesystem -lboost_regex -lboost_system $(shell mysql_config --libs) -luuid
 STATIC_LIBS     = -lyaml-cpp -lsqlpp-mysql
 GLIBS	    	  = $(ROOTGLIBS)
 #------------------------------------------------------------------------------

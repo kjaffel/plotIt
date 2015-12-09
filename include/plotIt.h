@@ -18,6 +18,7 @@
 #include <glob.h>
 
 #include <defines.h>
+#include <uuid.h>
 
 namespace YAML {
   class Node;
@@ -198,6 +199,7 @@ namespace plotIt {
   struct Plot {
     std::string name;
     std::string output_suffix;
+    std::string uid = get_uuid();
     std::string exclude;
 
     bool normalized;
@@ -256,6 +258,7 @@ namespace plotIt {
     Plot Clone(const std::string& new_name) {
       Plot clone = *this;
       clone.name = new_name;
+      clone.uid = get_uuid();
 
       return clone;
     }
