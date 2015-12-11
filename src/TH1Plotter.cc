@@ -250,11 +250,11 @@ namespace plotIt {
     };
 
     // Sort object by minimum
-    std::sort(toDraw.begin(), toDraw.end(), [](std::pair<TObject*, std::string> a, std::pair<TObject*, std::string> b) {
-        return getMinimum(a.first) < getMinimum(b.first);
+    std::sort(toDraw.begin(), toDraw.end(), [&plot](std::pair<TObject*, std::string> a, std::pair<TObject*, std::string> b) {
+        return (!plot.log_y) ? (getMinimum(a.first) < getMinimum(b.first)) : (getPositiveMinimum(a.first) < getPositiveMinimum(b.first));
       });
 
-    float minimum = getMinimum(toDraw[0].first);
+    float minimum = (!plot.log_y) ? getMinimum(toDraw[0].first) : getPositiveMinimum(toDraw[0].first);
 
     // Sort objects by maximum
     std::sort(toDraw.begin(), toDraw.end(), [](std::pair<TObject*, std::string> a, std::pair<TObject*, std::string> b) {
@@ -306,7 +306,7 @@ namespace plotIt {
 
       if (minimum <= 0 && plot.log_y) {
         double old_minimum = minimum;
-        minimum = getPositiveMinimum(toDraw[0].first);
+        minimum = 0.1;
         std::cout << "Warning: detected minimum is negative (" << old_minimum << ") but log scale is on. Setting minimum to " << minimum << std::endl;
       }
 
@@ -475,8 +475,6 @@ namespace plotIt {
     if (hi_pad.get())
       hi_pad->cd();
 
-    return true;
-  
     return true;
   }
 
