@@ -2,6 +2,7 @@
 
 #include <TCanvas.h>
 #include <TF1.h>
+#include <TFitResult.h>
 #include <TLatex.h>
 #include <TObject.h>
 #include <TVirtualFitter.h>
@@ -412,24 +413,98 @@ namespace plotIt {
       h_low_pad_axis->Draw("P E X0 same");
 
       if (plot.fit_ratio) {
-        float xMin = h_low_pad_axis->GetXaxis()->GetBinLowEdge(1);
-        float xMax = h_low_pad_axis->GetXaxis()->GetBinUpEdge(h_low_pad_axis->GetXaxis()->GetLast());
-        std::shared_ptr<TF1> fct = std::make_shared<TF1>("fit_function", plot.fit_function.c_str(), xMin, xMax);
+        float xMin, xMax;
+        if (plot.ratio_fit_range.valid()) {
+          xMin = plot.ratio_fit_range.x;
+          xMax = plot.ratio_fit_range.y;
+        } else {
+          xMin = h_low_pad_axis->GetXaxis()->GetBinLowEdge(1);
+          xMax = h_low_pad_axis->GetXaxis()->GetBinUpEdge(h_low_pad_axis->GetXaxis()->GetLast());
+        }
 
-        ratio->Fit(fct.get(), "MRNEQ");
+        std::shared_ptr<TF1> fct = std::make_shared<TF1>("fit_function", plot.ratio_fit_function.c_str(), xMin, xMax);
+        fct->SetNpx(m_plotIt.getConfiguration().ratio_fit_n_points);
 
-        std::shared_ptr<TH1> errors = std::make_shared<TH1D>("errors", "errors", 100, xMin, xMax);
+        TFitResultPtr fit_result = ratio->Fit(fct.get(), "SMRNEQ");
+        if (fit_result->IsValid()) {
+          std::shared_ptr<TH1> errors = std::make_shared<TH1D>("errors", "errors", m_plotIt.getConfiguration().ratio_fit_n_points, xMin, xMax);
+          errors->SetDirectory(nullptr);
+          (TVirtualFitter::GetFitter())->GetConfidenceIntervals(errors.get(), 0.68);
+          errors->SetStats(false);
+          errors->SetMarkerSize(0);
+          errors->SetFillColor(m_plotIt.getConfiguration().ratio_fit_error_fill_color);
+          errors->SetFillStyle(m_plotIt.getConfiguration().ratio_fit_error_fill_style);
+          errors->Draw("e3 same");
+
+          fct->SetLineWidth(m_plotIt.getConfiguration().ratio_fit_line_width);
+          fct->SetLineColor(m_plotIt.getConfiguration().ratio_fit_line_color);
+          fct->SetLineStyle(m_plotIt.getConfiguration().ratio_fit_line_style);
+          fct->Draw("same");
+
+          if (plot.ratio_fit_legend.length() > 0) {
+            uint32_t fit_parameters = fct->GetNpar();
+            boost::format formatter = get_formatter(plot.ratio_fit_legend);
+
+            for (uint32_t i = 0; i < fit_parameters; i++) {
+              formatter % fct->GetParameter(i);
+            }
+
+            std::string legend = formatter.str();
+
+            std::shared_ptr<TLatex> t(new TLatex(plot.ratio_fit_legend_position.x, plot.ratio_fit_legend_position.y, legend.c_str()));
+            t->SetNDC(true);
+            t->SetTextFont(43);
+            t->SetTextSize(LABEL_FONTSIZE - 4);
+            t->Draw();
+
+            m_plotIt.addTemporaryObject(t);
+          }
+
+          m_plotIt.addTemporaryObject(errors);
+          m_plotIt.addTemporaryObject(fct);
+        }
+      }
+
+      h_low_pad_axis->Draw("P E X0 same");
+      ratio->Draw("P same");
+
+      // Hide top pad label
+      hideXTitle(toDraw[0].first);
+
+      m_plotIt.addTemporaryObject(h_low_pad_axis);
+      m_plotIt.addTemporaryObject(ratio);
+      m_plotIt.addTemporaryObject(h_systematics);
+      m_plotIt.addTemporaryObject(hi_pad);
+      m_plotIt.addTemporaryObject(low_pad);
+    }
+
+    if (plot.fit) {
+      float xMin, xMax;
+      if (plot.fit_range.valid()) {
+        xMin = plot.fit_range.x;
+        xMax = plot.fit_range.y;
+      } else {
+        xMin = mc_stack->GetXaxis()->GetBinLowEdge(1);
+        xMax = mc_stack->GetXaxis()->GetBinUpEdge(mc_stack->GetXaxis()->GetLast());
+      }
+      std::shared_ptr<TF1> fct = std::make_shared<TF1>("fit_function", plot.fit_function.c_str(), xMin, xMax);
+      fct->SetNpx(m_plotIt.getConfiguration().fit_n_points);
+
+      TH1* mc_hist = static_cast<TH1*>(mc_stack->GetStack()->At(mc_stack->GetNhists() - 1));
+      TFitResultPtr fit_result = mc_hist->Fit(fct.get(), "SMRNEQ");
+      if (fit_result->IsValid()) {
+        std::shared_ptr<TH1> errors = std::make_shared<TH1D>("errors", "errors", m_plotIt.getConfiguration().fit_n_points, xMin, xMax);
         errors->SetDirectory(nullptr);
         (TVirtualFitter::GetFitter())->GetConfidenceIntervals(errors.get(), 0.68);
         errors->SetStats(false);
         errors->SetMarkerSize(0);
-        errors->SetFillColor(m_plotIt.getConfiguration().ratio_fit_error_fill_color);
-        errors->SetFillStyle(m_plotIt.getConfiguration().ratio_fit_error_fill_style);
+        errors->SetFillColor(m_plotIt.getConfiguration().fit_error_fill_color);
+        errors->SetFillStyle(m_plotIt.getConfiguration().fit_error_fill_style);
         errors->Draw("e3 same");
 
-        fct->SetLineWidth(m_plotIt.getConfiguration().ratio_fit_line_width);
-        fct->SetLineColor(m_plotIt.getConfiguration().ratio_fit_line_color);
-        fct->SetLineStyle(m_plotIt.getConfiguration().ratio_fit_line_style);
+        fct->SetLineWidth(m_plotIt.getConfiguration().fit_line_width);
+        fct->SetLineColor(m_plotIt.getConfiguration().fit_line_color);
+        fct->SetLineStyle(m_plotIt.getConfiguration().fit_line_style);
         fct->Draw("same");
 
         if (plot.fit_legend.length() > 0) {
@@ -454,18 +529,6 @@ namespace plotIt {
         m_plotIt.addTemporaryObject(errors);
         m_plotIt.addTemporaryObject(fct);
       }
-
-      h_low_pad_axis->Draw("P E X0 same");
-      ratio->Draw("P same");
-
-      // Hide top pad label
-      hideXTitle(toDraw[0].first);
-
-      m_plotIt.addTemporaryObject(h_low_pad_axis);
-      m_plotIt.addTemporaryObject(ratio);
-      m_plotIt.addTemporaryObject(h_systematics);
-      m_plotIt.addTemporaryObject(hi_pad);
-      m_plotIt.addTemporaryObject(low_pad);
     }
 
     gPad->Modified();

@@ -157,13 +157,24 @@ namespace plotIt {
   };
 
   struct Point {
-    float x;
-    float y;
+    float x = std::numeric_limits<float>::quiet_NaN();
+    float y = std::numeric_limits<float>::quiet_NaN();
 
     bool operator==(const Point& other) {
       return
         (fabs(x - other.x) < 1e-6) &&
         (fabs(y - other.y) < 1e-6);
+    }
+
+    bool valid() const {
+      return !std::isnan(x) && !std::isnan(y);
+    }
+
+    Point() = default;
+    Point(std::initializer_list<float> c) {
+      assert(c.size() == 2);
+      x = *c.begin();
+      y = *(c.begin() + 1);
     }
   };
 
@@ -225,10 +236,18 @@ namespace plotIt {
     std::vector<std::string> save_extensions;
 
     bool show_ratio;
+
+    bool fit = false;
+    std::string fit_function = "gaus";
+    std::string fit_legend = "#scale[1.6]{#splitline{#mu = %2$.3f}{#sigma = %3$.3f}}";
+    Point fit_legend_position = {0.22, 0.87};
+    Point fit_range;
+
     bool fit_ratio = false;
-    std::string fit_function = "pol1";
-    std::string fit_legend;
-    Point fit_legend_position = {0.20, 0.38};
+    std::string ratio_fit_function = "pol1";
+    std::string ratio_fit_legend;
+    Point ratio_fit_legend_position = {0.20, 0.38};
+    Point ratio_fit_range;
 
     bool show_errors;
     bool show_overflow = false;
@@ -283,6 +302,14 @@ namespace plotIt {
     int16_t error_fill_color;
     int16_t error_fill_style;
 
+    uint16_t fit_n_points = 1000;
+    int16_t fit_line_color = 46;
+    int16_t fit_line_width = 1;
+    int16_t fit_line_style = 1;
+    int16_t fit_error_fill_color = 42;
+    int16_t fit_error_fill_style = 1001;
+
+    uint16_t ratio_fit_n_points = 1000;
     int16_t ratio_fit_line_color = 46;
     int16_t ratio_fit_line_width = 1;
     int16_t ratio_fit_line_style = 1;

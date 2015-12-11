@@ -189,6 +189,24 @@ namespace plotIt {
       if (node["error-fill-style"])
         m_config.error_fill_style = loadColor(node["error-fill-style"]);
 
+      if (node["fit-line-style"])
+        m_config.fit_line_style = node["fit-line-style"].as<int16_t>();
+
+      if (node["fit-line-width"])
+        m_config.fit_line_width = node["fit-line-width"].as<int16_t>();
+
+      if (node["fit-line-color"])
+        m_config.fit_line_color = loadColor(node["fit-line-color"]);
+
+      if (node["fit-error-fill-style"])
+        m_config.fit_error_fill_style = node["fit-error-fill-style"].as<int16_t>();
+
+      if (node["fit-error-fill-color"])
+        m_config.fit_error_fill_color = loadColor(node["fit-error-fill-color"]);
+
+      if (node["fit-n-points"])
+        m_config.fit_n_points = node["fit-n-points"].as<uint16_t>();
+
       if (node["ratio-fit-line-style"])
         m_config.ratio_fit_line_style = node["ratio-fit-line-style"].as<int16_t>();
 
@@ -203,6 +221,9 @@ namespace plotIt {
 
       if (node["ratio-fit-error-fill-color"])
         m_config.ratio_fit_error_fill_color = loadColor(node["ratio-fit-error-fill-color"]);
+
+      if (node["ratio-fit-n-points"])
+        m_config.ratio_fit_n_points = node["ratio-fit-n-points"].as<uint16_t>();
 
       if (node["labels"]) {
         YAML::Node labels = node["labels"];
@@ -454,6 +475,9 @@ namespace plotIt {
       if (node["fit-ratio"])
         plot.fit_ratio = node["fit-ratio"].as<bool>();
 
+      if (node["fit"])
+        plot.fit = node["fit"].as<bool>();
+
       if (node["fit-function"])
         plot.fit_function = node["fit-function"].as<std::string>();
 
@@ -462,6 +486,21 @@ namespace plotIt {
 
       if (node["fit-legend-position"])
         plot.fit_legend_position = node["fit-legend-position"].as<Point>();
+
+      if (node["fit-range"])
+        plot.fit_range = node["fit-range"].as<Point>();
+
+      if (node["ratio-fit-function"])
+        plot.ratio_fit_function = node["ratio-fit-function"].as<std::string>();
+
+      if (node["ratio-fit-legend"])
+        plot.ratio_fit_legend = node["ratio-fit-legend"].as<std::string>();
+
+      if (node["ratio-fit-legend-position"])
+        plot.ratio_fit_legend_position = node["ratio-fit-legend-position"].as<Point>();
+
+      if (node["ratio-fit-range"])
+        plot.ratio_fit_range = node["ratio-fit-range"].as<Point>();
 
       if (node["show-errors"])
         plot.show_errors = node["show-errors"].as<bool>();
