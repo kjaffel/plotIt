@@ -28,7 +28,17 @@ mkdir "$BASE_DIR/$OUTPUT_FOLDER"
 for flavor in MuMu ElEl MuEl ElMu; do
     mkdir "$BASE_DIR/$OUTPUT_FOLDER/$flavor"
 
+    cp TT_plots_base.yml TT_plots_$flavor.yml
+    sed "s/base/$flavor/g" -i TT_plots_$flavor.yml
     ../../plotIt TT_config_${flavor}.yml -o "$BASE_DIR/$OUTPUT_FOLDER/$flavor"
+done
+
+for flavor in MuMu ElEl; do
+    mkdir "$BASE_DIR/$OUTPUT_FOLDER/${flavor}_ZVeto"
+
+    cp TT_plots_base.yml TT_plots_$flavor.yml
+    sed "s/base/${flavor}_ZVeto/g" -i TT_plots_$flavor.yml
+    ../../plotIt TT_config_${flavor}.yml -o "$BASE_DIR/$OUTPUT_FOLDER/${flavor}_ZVeto"
 done
 
 echo ""

@@ -5,44 +5,39 @@ configuration:
   experiment: "CMS"
   extra-label: "Preliminary"
   root: "results/latest"
-  luminosity: 2093.731
-  luminosity-error: 0.12
+  luminosity: 1000
+  luminosity-error: 0.
   show-overflow: true
   error-fill-style: 3154
   error-fill-color: "#ee556270"
-  ratio-fit-error-fill-style: 1001
-  ratio-fit-error-fill-color: "#aa556270"
-  ratio-fit-line-color: "#0B486B"
+  fit-error-fill-style: 1001
+  fit-error-fill-color: "#aa556270"
+  fit-line-color: "#0B486B"
+  fit-line-width: 2
 
 files:
   'TT_TuneCUETP8M1_13TeV-powheg-pythia8_MiniAODv2_v1.1.0+7415-6-g42bf8af_TTAnalysis_e595725_histos.root':
     type: mc
     cross-section: 831.76
     generated-events: 96696300.0
-    legend: 'TT'
+    legend: 't#bar{t}'
     fill-color: '#EB6841'
     order: 0
 
 plots:
-  'llbbMet_TT_M_resolution*':
+  'llbbMet_TT_M_resolution_CAT*':
     x-axis: "(M_{t#bar{t}} - M_{t#bar{t}, gen}) / M_{t#bar{t}, gen}"
     y-axis: "Evt"
     x-axis-range: [-2, 2]
     y-axis-format: "%1% / %2$.0f"
     normalized: false
-    log-y: both
+    log-y: false
     save-extensions: ["pdf"]
     show-ratio: true
-
-  'llbbMet_TT_M_minus*':
-    x-axis: "(M_{t#bar{t}} - M_{t#bar{t}, gen})"
-    y-axis: "Evt"
-    #x-axis-range: [-20, 20]
-    y-axis-format: "%1% / %2$.0f"
-    normalized: false
-    log-y: both
-    save-extensions: ["pdf"]
-    show-ratio: true
+    fit: true
+    fit-function: 'gaus'
+    fit-legend: '#scale[1.6]{#splitline{#mu = %2$.3f}{#sigma = %3$.3f}}'
+    fit-legend-position: [0.22, 0.87]
 
 legend:
   position: [0.7, 0.8, 0.91, 0.91]

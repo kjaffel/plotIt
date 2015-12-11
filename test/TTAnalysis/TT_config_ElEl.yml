@@ -6,7 +6,7 @@ configuration:
   extra-label: "Preliminary"
   root: "results/latest"
   luminosity: 2197.597
-  luminosity-error: 0.12
+  luminosity-error: 0.046
   show-overflow: true
   error-fill-style: 3154
   error-fill-color: "#ee556270"
