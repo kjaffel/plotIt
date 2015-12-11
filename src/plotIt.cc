@@ -448,6 +448,9 @@ namespace plotIt {
       if (node["normalized"])
         plot.normalized = node["normalized"].as<bool>();
 
+      if (node["no-data"])
+        plot.no_data = node["no-data"].as<bool>();
+
       Log log_y = False;
       if (node["log-y"]) {
         log_y = parse_log(node["log-y"]);
@@ -646,13 +649,15 @@ namespace plotIt {
       };
 
       // First, add data, always on first column
-      for (File& file: m_files) {
-          if (file.type == DATA) {
-              Entry entry;
-              if (getEntryFromFile(file, entry)) {
-                  legend_entries[0].push_back(entry);
-              }
-          }
+      if (!plot.no_data) {
+        for (File& file: m_files) {
+            if (file.type == DATA) {
+                Entry entry;
+                if (getEntryFromFile(file, entry)) {
+                    legend_entries[0].push_back(entry);
+                }
+            }
+        }
       }
 
       // Then MC, spanning on the remaining columns

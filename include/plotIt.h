@@ -213,6 +213,7 @@ namespace plotIt {
     std::string uid = get_uuid();
     std::string exclude;
 
+    bool no_data = false;
     bool normalized;
     bool log_y;
     bool log_x;

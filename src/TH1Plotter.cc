@@ -149,7 +149,7 @@ namespace plotIt {
       }
     }
 
-    if ((h_data.get()) && !h_data->GetSumOfWeights())
+    if (plot.no_data || ((h_data.get()) && !h_data->GetSumOfWeights()))
       h_data.reset();
 
     if ((mc_histo_stat_only.get() && !mc_histo_stat_only->GetSumOfWeights())) {
