@@ -212,6 +212,7 @@ namespace plotIt {
     std::string exclude;
 
     bool no_data = false;
+    bool override = false; // flag to plot only those which have it true (if at least one plot has it true)
     bool normalized;
     bool log_y;
     bool log_x;

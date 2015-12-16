@@ -483,6 +483,9 @@ namespace plotIt {
 
       if (node["no-data"])
         plot.no_data = node["no-data"].as<bool>();
+      
+      if (node["override"])
+        plot.override = node["override"].as<bool>();
 
       Log log_y = False;
       if (node["log-y"]) {
@@ -650,6 +653,12 @@ namespace plotIt {
           ++log_counter;
         }
       }
+    }
+
+    // If at least one plot has 'override' set to true, keep only plots which do
+    if( std::find_if(m_plots.begin(), m_plots.end(), [](Plot &plot){ return plot.override; }) != m_plots.end() ){
+      auto new_end = std::remove_if(m_plots.begin(), m_plots.end(), [](Plot &plot){ return !plot.override; });
+      m_plots.erase(new_end, m_plots.end());
     }
 
     parseLumiLabel();
