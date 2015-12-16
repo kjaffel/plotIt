@@ -20,6 +20,9 @@
 #include <vector>
 #include <map>
 #include <fstream>
+#include <sstream>
+#include <set>
+#include <iomanip>
 
 #include "tclap/CmdLine.h"
 
@@ -87,6 +90,7 @@ namespace plotIt {
     }
   }
 
+  // Replace the "include" fields by the content they point to
   void plotIt::parseIncludes(YAML::Node& node) {
 
     if (node["include"]) {
@@ -139,6 +143,7 @@ namespace plotIt {
       return labels;
     };
 
+    // Retrieve legend configuration
     if (f["legend"]) {
       YAML::Node node = f["legend"];
 
@@ -150,6 +155,7 @@ namespace plotIt {
     }
 
 
+    // Retrieve plotIt configuration
     if (f["configuration"]) {
       YAML::Node node = f["configuration"];
 
@@ -225,6 +231,21 @@ namespace plotIt {
       m_config.errors_type = Poisson;
       if (node["errors-type"])
           m_config.errors_type = string_to_errors_type(node["errors-type"].as<std::string>());
+      
+      if (node["yields-table-stretch"])
+        m_config.yields_table_stretch = node["yields-table-stretch"].as<float>();
+
+      if (node["yields-table-align"])
+        m_config.yields_table_align = node["yields-table-align"].as<std::string>();
+
+      if (node["yields-table-text-align"])
+        m_config.yields_table_text_align = node["yields-table-text-align"].as<std::string>();
+
+      if (node["yields-table-numerical-precision-yields"])
+        m_config.yields_table_num_prec_yields = node["yields-table-numerical-precision-yields"].as<int>();
+
+      if (node["yields-table-numerical-precision-ratio"])
+        m_config.yields_table_num_prec_ratio = node["yields-table-numerical-precision-ratio"].as<int>();
     }
 
     // Database
@@ -256,6 +277,7 @@ namespace plotIt {
         std::cout << "Connected." << std::endl << std::endl;
     }
 
+    // Retrieve files/processes configuration
     YAML::Node files = f["files"];
 
     for (YAML::const_iterator it = files.begin(); it != files.end(); ++it) {
@@ -308,7 +330,17 @@ namespace plotIt {
         file.order = node["order"].as<int16_t>();
 
       if (node["group"]) {
-        file.group = node["group"].as<std::string>();
+        file.legend_group = node["group"].as<std::string>();
+      }
+
+      if (node["yields-group"]) {
+        file.yields_group = node["yields-group"].as<std::string>();
+      } else if(node["group"]) {
+        file.yields_group = node["group"].as<std::string>();
+      } else if(node["legend"]) {
+        file.yields_group = node["legend"].as<std::string>();
+      } else {
+        file.yields_group = file.path;
       }
 
       if (node["systematics"]) {
@@ -365,9 +397,9 @@ namespace plotIt {
       return a.order < b.order;
      });
 
-    YAML::Node groups = f["groups"];
+    YAML::Node legend_groups = f["groups"];
 
-    for (YAML::const_iterator it = groups.begin(); it != groups.end(); ++it) {
+    for (YAML::const_iterator it = legend_groups.begin(); it != legend_groups.end(); ++it) {
       Group group;
 
       group.name = it->first.as<std::string>();
@@ -377,7 +409,7 @@ namespace plotIt {
       // Find the first file belonging to this group, and use its type to set
       // default style values
       const auto file = std::find_if(m_files.begin(), m_files.end(), [&group](const File& file) {
-          return file.group == group.name;
+          return file.legend_group == group.name;
         });
 
       // Is this group actually used?
@@ -387,16 +419,17 @@ namespace plotIt {
       group.plot_style = std::make_shared<PlotStyle>();
       group.plot_style->loadFromYAML(node, *file, *this);
 
-      m_groups[group.name] = group;
+      m_legend_groups[group.name] = group;
     }
 
     // Remove non-existant groups from files
     for (auto& file: m_files) {
-      if (!file.group.empty() && !m_groups.count(file.group)) {
-        file.group = "";
+      if (!file.legend_group.empty() && !m_legend_groups.count(file.legend_group)) {
+        file.legend_group = "";
       }
     }
 
+    // Retrieve plots configuration
     if (! f["plots"]) {
       throw YAML::ParserException(YAML::Mark::null_mark(), "You must specify at least one plot in your configuration file");
     }
@@ -528,6 +561,17 @@ namespace plotIt {
       if (node["selection-string"])
         plot.selection_string = node["selection-string"].as<std::string>();
 
+      if (node["for-yields"])
+        plot.use_for_yields = node["for-yields"].as<bool>();
+
+      if (node["yields-title"])
+        plot.yields_title = node["yields-title"].as<std::string>();
+      else
+        plot.yields_title = plot.name;
+
+      if (node["yields-table-order"])
+        plot.yields_table_order = node["yields-table-order"].as<int>();
+      
       // Handle log
       std::vector<bool> logs_x;
       std::vector<bool> logs_y;
@@ -544,11 +588,15 @@ namespace plotIt {
         logs_y.push_back(plot.log_y);
       }
 
+      int log_counter(0);
       for (auto x: logs_x) {
         for (auto y: logs_y) {
           Plot p = plot;
           p.log_x = x;
           p.log_y = y;
+          // If the plot is used for yields, they should be output only once
+          if(log_counter && plot.use_for_yields)
+            p.use_for_yields = false;
 
           if (p.log_x)
             p.output_suffix += "_logx";
@@ -557,6 +605,7 @@ namespace plotIt {
             p.output_suffix += "_logy";
 
           m_plots.push_back(p);
+          ++log_counter;
         }
       }
     }
@@ -593,12 +642,12 @@ namespace plotIt {
       std::vector<Entry> legend_entries[plot.legend_columns];
 
       auto getEntryFromFile = [&](File& file, Entry& entry) {
-          if (file.group.length() > 0 && m_groups.count(file.group) && m_groups[file.group].plot_style->legend.length() > 0) {
-              if (m_groups[file.group].added)
+          if (file.legend_group.length() > 0 && m_legend_groups.count(file.legend_group) && m_legend_groups[file.legend_group].plot_style->legend.length() > 0) {
+              if (m_legend_groups[file.legend_group].added)
                   return false;
-              m_groups[file.group].added = true;
+              m_legend_groups[file.legend_group].added = true;
 
-              entry = {file.object, m_groups[file.group].plot_style->legend, m_groups[file.group].plot_style->legend_style};
+              entry = {file.object, m_legend_groups[file.legend_group].plot_style->legend, m_legend_groups[file.legend_group].plot_style->legend_style};
           } else if (file.plot_style.get() && file.plot_style->legend.length() > 0) {
               entry = {file.object, file.plot_style->legend, file.plot_style->legend_style};
           }
@@ -865,7 +914,7 @@ namespace plotIt {
     m_temporaryObjects.clear();
 
     // Reset groups
-    for (auto& group: m_groups) {
+    for (auto& group: m_legend_groups) {
       group.second.added = false;
     }
 
@@ -873,6 +922,179 @@ namespace plotIt {
     for (auto& file: m_files) {
       file.summary.clear();
     }
+
+    return true;
+  }
+
+  bool plotIt::yields(std::vector<Plot>& plots){
+    std::cout << "Producing LaTeX yield table.\n";
+    
+    std::map<std::string, double> data_yields;
+    
+    std::map< std::string, std::map<std::string, std::pair<double, double> > > mc_yields;
+    std::map< std::string, double > mc_total;
+    std::map< std::string, double > mc_total_sqerrs;
+    std::set<std::string> mc_processes;
+    
+    std::map< std::string, std::map<std::string, std::pair<double, double> > > signal_yields;
+    std::set<std::string> signal_processes;
+
+    std::vector< std::pair<int, std::string> > categories;
+    
+    bool has_data(false);
+
+    for(Plot& plot: plots){
+      if (!plot.use_for_yields)
+        continue;
+      
+      replace_substr(plot.yields_title, "_", "\\_");
+      if( std::find_if(categories.begin(), categories.end(), [&](const std::pair<int, std::string> &x){ return x.second == plot.yields_title; }) != categories.end() )
+        return false;
+      categories.push_back( std::make_pair(plot.yields_table_order, plot.yields_title) );
+
+      // Open all files, and find histogram in each
+      for (File& file: m_files) {
+        if (! loadObject(file, plot)) {
+          std::cout << "Could not retrieve plot from " << file.path << std::endl;
+          return false;
+        }
+
+        if ( file.type == DATA ){
+          data_yields[plot.yields_title] += dynamic_cast<TH1*>(file.object)->Integral();
+          has_data = true;
+          continue;
+        }
+
+        std::string process_name = file.yields_group;
+        replace_substr(process_name, "_", "\\_");
+        std::pair<double, double> yield_sqerror;
+        TH1* hist( dynamic_cast<TH1*>(file.object) );
+
+        double factor = m_config.luminosity * file.cross_section * file.branching_ratio / file.generated_events;
+        if( !m_config.ignore_scales )
+          factor *= m_config.scale * file.scale;
+        hist->Scale(factor);
+
+        // Retrieve yield and stat. error
+        yield_sqerror.first = hist->IntegralAndError(1, hist->GetNbinsX(), yield_sqerror.second);
+        yield_sqerror.second = std::pow(yield_sqerror.second,2);
+        // Add lumi. error
+        yield_sqerror.second += std::pow(yield_sqerror.first*m_config.luminosity_error_percent, 2);
+        // Add syst. errors
+        for(auto& syst: file.systematics){
+          TH1* syst_h( dynamic_cast<TH1*>(syst.object) );
+          double tot_sq_syst(0);
+          for(int i = 1; i <= syst_h->GetNbinsX(); ++i)
+            tot_sq_syst += std::pow(hist->GetBinContent(i)*syst_h->GetBinError(i), 2);
+          yield_sqerror.second += tot_sq_syst;
+        }
+        
+        if ( file.type == MC ){
+          ADD_PAIRS(mc_yields[plot.yields_title][process_name], yield_sqerror);
+          mc_total[plot.yields_title] += yield_sqerror.first;
+          mc_total_sqerrs[plot.yields_title] += yield_sqerror.second;
+          mc_processes.emplace(process_name);
+        }
+        if ( file.type == SIGNAL ){
+          ADD_PAIRS(signal_yields[plot.yields_title][process_name], yield_sqerror);
+          signal_processes.emplace(process_name);
+        }
+      }
+    }
+    
+    if( ( !(mc_processes.size()+signal_processes.size()) && !has_data ) || !categories.size() ){
+      std::cout << "No processes/data/categories defined\n";
+      return false;
+    }
+
+    // Sort according to user-defined order
+    std::sort(categories.begin(), categories.end(), [](const std::pair<int, std::string>& cat1, const std::pair<int, std::string>& cat2){  return cat1.first < cat2.first; });
+
+    std::ostringstream latexString;
+    latexString << "\\renewcommand{\\arraystretch}{" << m_config.yields_table_stretch << "}\n";
+    std::string tab("    ");
+
+    latexString << std::setiosflags(std::ios_base::fixed);
+    
+    if( m_config.yields_table_align.find("h") != std::string::npos ){
+
+      latexString << "\\begin{tabular}{ |l||";
+   
+      // tabular config.
+      for(size_t i = 0; i < signal_processes.size(); ++i)
+        latexString << m_config.yields_table_text_align << "|";
+      if(signal_processes.size())
+        latexString << "|";
+      for(size_t i = 0; i < mc_processes.size(); ++i)
+        latexString << m_config.yields_table_text_align << "|";
+      if(mc_processes.size())
+        latexString << "|" + m_config.yields_table_text_align << "||";
+      if(has_data)
+        latexString << m_config.yields_table_text_align << "||";
+      if(has_data && mc_processes.size())
+        latexString << m_config.yields_table_text_align << "||";
+      latexString.seekp(latexString.tellp() - 2l);
+      latexString << "| }\n" << tab << tab << "\\hline\n";
+
+      // title line
+      latexString << "    Cat. & ";
+      for(auto &proc: signal_processes)
+        latexString << proc << " & ";
+      for(auto &proc: mc_processes)
+        latexString << proc << " & ";
+      if( mc_processes.size() )
+        latexString << "Tot. MC & ";
+      if( has_data )
+        latexString << "Data & ";
+      if( has_data && mc_processes.size() )
+        latexString << "Data/MC & ";
+      latexString.seekp(latexString.tellp() - 2l);
+      latexString << "\\\\\n" << tab << tab << "\\hline\n";
+      
+      // loop over each category
+      for(auto& cat_pair: categories){
+        
+        std::string categ(cat_pair.second);
+        latexString << tab << categ << " & ";
+        latexString << std::setprecision(m_config.yields_table_num_prec_yields);
+
+        for(auto &proc: signal_processes)
+          latexString << "$" << signal_yields[categ][proc].first << " \\pm " << std::sqrt(signal_yields[categ][proc].second) << "$ & ";
+        
+        for(auto &proc: mc_processes)
+          latexString << "$" << mc_yields[categ][proc].first << " \\pm " << std::sqrt(mc_yields[categ][proc].second) << "$ & ";
+        if( mc_processes.size() )
+          latexString << "$" << mc_total[categ] << " \\pm " << std::sqrt(mc_total_sqerrs[categ]) << "$ & ";
+        
+        if( has_data )
+          latexString << "$" << std::setprecision(0) << data_yields[categ] << "$ & ";
+        
+        if( has_data && mc_processes.size() ){
+          double ratio = data_yields[categ] / mc_total[categ];
+          double err = ratio * std::sqrt(1/data_yields[categ] + mc_total_sqerrs[categ]/std::pow(mc_total[categ], 2));
+          latexString << std::setprecision(m_config.yields_table_num_prec_ratio) << "$" << ratio << " \\pm " << err << "$ & ";
+        }
+
+        latexString.seekp(latexString.tellp() - 2l);
+        latexString << "\\\\\n";
+      }
+
+      latexString << tab << tab << "\\hline\n\\end{tabular}\n";
+
+    } else {
+      std::cerr << "Error: yields table alignment " << m_config.yields_table_align << " is not recognized (for now, only \"h\" is supported)" << std::endl;
+      return false;
+    }
+
+    if(m_config.verbose)
+      std::cout << "LaTeX yields table:\n\n" << latexString.str() << std::endl;
+
+    fs::path outputName(m_outputPath);
+    outputName /= "yields.tex";
+
+    std::ofstream out(outputName.string());
+    out << latexString.str();
+    out.close();
 
     return true;
   }
@@ -895,9 +1117,13 @@ namespace plotIt {
     }
     std::cout << "Done." << std::endl;
 
-
-    for (Plot& plot: plots) {
-      plotIt::plot(plot);
+    if(m_config.do_plots){
+      for (Plot& plot: plots) {
+        plotIt::plot(plot);
+      }
+    }
+    if(m_config.do_yields){
+      plotIt::yields(plots);
     }
   }
 
@@ -1145,8 +1371,8 @@ namespace plotIt {
   }
 
   std::shared_ptr<PlotStyle> plotIt::getPlotStyle(const File& file) {
-    if (file.group.length() && m_groups.count(file.group)) {
-      return m_groups[file.group].plot_style;
+    if (file.legend_group.length() && m_legend_groups.count(file.legend_group)) {
+      return m_legend_groups[file.legend_group].plot_style;
     } else {
       return file.plot_style;
     }
@@ -1240,6 +1466,10 @@ int main(int argc, char** argv) {
 
     TCLAP::SwitchArg verboseArg("v", "verbose", "Verbose output (print summary)", cmd, false);
 
+    TCLAP::SwitchArg yieldsArg("y", "yields", "Produce LaTeX table of yields", cmd, false);
+
+    TCLAP::SwitchArg plotsArg("p", "plots", "Do not produce the plots - can be useful if only the yields table is needed", cmd, false);
+
     TCLAP::UnlabeledValueArg<std::string> configFileArg("configFile", "configuration file", true, "", "string", cmd);
 
     cmd.parse(argc, argv);
@@ -1253,9 +1483,16 @@ int main(int argc, char** argv) {
       return 1;
     }
 
+    if( plotsArg.getValue() && !yieldsArg.getValue() ) {
+      std::cerr << "Error: we have nothing to do" << std::endl;
+      return 1;
+    }
+
     plotIt::plotIt p(outputPath, configFileArg.getValue());
     p.getConfigurationForEditing().ignore_scales = ignoreScaleArg.getValue();
     p.getConfigurationForEditing().verbose = verboseArg.getValue();
+    p.getConfigurationForEditing().do_plots = !plotsArg.getValue();
+    p.getConfigurationForEditing().do_yields = yieldsArg.getValue();
 
     p.plotAll();
 

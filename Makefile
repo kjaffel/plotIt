@@ -18,7 +18,7 @@ ROOTCFLAGS = $(shell root-config --cflags)
 ROOTLIBS   = $(shell root-config --noldflags --libs)
 
 CXX           = g++
-CXXFLAGS	    = -g -Wall -fPIC --std=c++0x
+CXXFLAGS	    = -g -Wall -fPIC --std=c++11
 LD			      = g++
 LDDIR         = -L$(shell root-config --libdir) -Lexternal/lib -L$(BOOST_ROOT)/lib/
 LDFLAGS		    = -fPIC $(shell root-config --ldflags) $(LDDIR)

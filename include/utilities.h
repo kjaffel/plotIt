@@ -35,6 +35,9 @@ namespace plotIt {
       else if (dynamic_cast<THStack*>(OBJECT)) \
         return FUNCTION(dynamic_cast<THStack*>(OBJECT)->GetHistogram(), ##__VA_ARGS__);
 
+  #define ADD_PAIRS(PAIR1, PAIR2) \
+      PAIR1.first += PAIR2.first; PAIR1.second += PAIR2.second;
+
   template<class T>
     void setAxisTitles(T* object, Plot& plot) {
       if (plot.x_axis.length() > 0 && object->GetXaxis()) {
@@ -132,4 +135,6 @@ namespace plotIt {
   }
 
   float getPositiveMinimum(TObject* object);
+
+  void replace_substr(std::string &s, const std::string &old, const std::string &rep);
 }
