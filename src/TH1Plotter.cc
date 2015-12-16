@@ -67,6 +67,7 @@ namespace plotIt {
       TH1* h = dynamic_cast<TH1*>(file.object);
 
       if (file.type != DATA) {
+        plot.is_rescaled = true;
         float factor = m_plotIt.getConfiguration().luminosity * file.cross_section * file.branching_ratio / file.generated_events;
         if (! m_plotIt.getConfiguration().ignore_scales) {
           factor *= m_plotIt.getConfiguration().scale * file.scale;

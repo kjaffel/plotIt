@@ -136,5 +136,6 @@ namespace plotIt {
 
   float getPositiveMinimum(TObject* object);
 
+  // replace all occurences of "old" in "s" by "rep"
   void replace_substr(std::string &s, const std::string &old, const std::string &rep);
 }

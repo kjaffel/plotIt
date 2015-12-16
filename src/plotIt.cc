@@ -967,13 +967,16 @@ namespace plotIt {
 
         std::string process_name = file.yields_group;
         replace_substr(process_name, "_", "\\_");
+        replace_substr(process_name, "\\", "\\\\");
         std::pair<double, double> yield_sqerror;
         TH1* hist( dynamic_cast<TH1*>(file.object) );
 
-        double factor = m_config.luminosity * file.cross_section * file.branching_ratio / file.generated_events;
-        if( !m_config.ignore_scales )
-          factor *= m_config.scale * file.scale;
-        hist->Scale(factor);
+        if( !plot.is_rescaled ){
+          double factor = m_config.luminosity * file.cross_section * file.branching_ratio / file.generated_events;
+          if( !m_config.ignore_scales )
+            factor *= m_config.scale * file.scale;
+          hist->Scale(factor);
+        }
 
         // Retrieve yield and stat. error
         yield_sqerror.first = hist->IntegralAndError(1, hist->GetNbinsX(), yield_sqerror.second);

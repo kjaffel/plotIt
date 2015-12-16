@@ -176,8 +176,8 @@ namespace plotIt {
   }
   
   void replace_substr(std::string &s, const std::string &old, const std::string &rep){
-    size_t pos;
-    while( (pos = s.find(old)) != std::string::npos )
+    size_t pos(0);
+    while( (pos = s.find(old, !pos ? 0 : pos+rep.size())) != std::string::npos )
       s.replace(pos, old.size(), rep);
   }
 }
