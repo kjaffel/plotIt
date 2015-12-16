@@ -109,11 +109,9 @@ namespace plotIt {
     float generated_events;
     float scale;
 
-    // For Data
-    float luminosity;
-
     std::shared_ptr<PlotStyle> plot_style;
-    std::string group;
+    std::string legend_group;
+    std::string yields_group;
 
     Type type;
 
@@ -266,6 +264,12 @@ namespace plotIt {
 
     ErrorsType errors_type = Poisson;
 
+    bool use_for_yields = false;
+    std::string yields_title;
+    int yields_table_order = 0;
+
+    bool is_rescaled = false;
+    
     void print() {
       std::cout << "Plot '" << name << "'" << std::endl;
       std::cout << "\tx_axis: " << x_axis << std::endl;
@@ -330,11 +334,19 @@ namespace plotIt {
     bool ignore_scales = false;
     bool verbose = false;
     bool show_overflow = false;
+    bool do_plots = true;
+    bool do_yields = false;
 
     std::string mode = "hist"; // "tree" or "hist"
     std::string tree_name;
 
     ErrorsType errors_type = Poisson;
+
+    float yields_table_stretch = 1.15;
+    std::string yields_table_align = "h";
+    std::string yields_table_text_align = "c";
+    int yields_table_num_prec_yields = 1;
+    int yields_table_num_prec_ratio = 2;
 
     Configuration() {
       width = height = 800;
@@ -380,6 +392,7 @@ namespace plotIt {
 
       // Plot method
       bool plot(Plot& plot);
+      bool yields(std::vector<Plot>& plots);
 
       bool expandFiles();
       bool expandObjects(File& file, std::vector<Plot>& plots);
@@ -396,7 +409,8 @@ namespace plotIt {
 
       std::vector<File> m_files;
       std::vector<Plot> m_plots;
-      std::map<std::string, Group> m_groups;
+      std::map<std::string, Group> m_legend_groups;
+      std::map<std::string, Group> m_yields_groups;
 
       // Store objects in order to delete everything when drawing is done
       std::vector<std::shared_ptr<TObject>> m_temporaryObjects;

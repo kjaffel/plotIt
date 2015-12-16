@@ -68,6 +68,7 @@ namespace plotIt {
       TH1* h = dynamic_cast<TH1*>(file.object);
 
       if (file.type != DATA) {
+        plot.is_rescaled = true;
         float factor = m_plotIt.getConfiguration().luminosity * file.cross_section * file.branching_ratio / file.generated_events;
         if (! m_plotIt.getConfiguration().ignore_scales) {
           factor *= m_plotIt.getConfiguration().scale * file.scale;
@@ -214,13 +215,13 @@ namespace plotIt {
             float syst_error_percent = h->GetBinError(i);
             float nominal_value = nominal->GetBinContent(i);
             float syst_error = nominal_value * syst_error_percent;
-            total_syst_error += syst_error;
+            total_syst_error += syst_error * syst_error;
 
             mc_histo_syst_only->SetBinError(i, std::sqrt(total_error * total_error + syst_error * syst_error));
           }
 
           syst.summary.n_events = file.summary.n_events;
-          syst.summary.n_events_error = total_syst_error;
+          syst.summary.n_events_error = std::sqrt(total_syst_error);
         }
       }
 
