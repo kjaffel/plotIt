@@ -231,6 +231,12 @@ namespace plotIt {
       if (node["ratio-fit-n-points"])
         m_config.ratio_fit_n_points = node["ratio-fit-n-points"].as<uint16_t>();
 
+      if (node["blinded-range-fill-color"])
+        m_config.blinded_range_fill_color = loadColor(node["blinded-range-fill-color"]);
+
+      if (node["blinded-range-fill-style"])
+        m_config.blinded_range_fill_style = node["blinded-range-fill-style"].as<uint16_t>();
+
       if (node["labels"]) {
         YAML::Node labels = node["labels"];
         m_config.labels = parseLabelsNode(labels);
@@ -551,6 +557,9 @@ namespace plotIt {
 
       if (node["y-axis-range"])
         plot.y_axis_range = node["y-axis-range"].as<std::vector<float>>();
+
+      if (node["blinded-range"])
+        plot.blinded_range = node["blinded-range"].as<Point>();
 
       plot.y_axis_show_zero = false;
       if (node["y-axis-show-zero"])
@@ -1526,6 +1535,8 @@ int main(int argc, char** argv) {
 
     TCLAP::SwitchArg plotsArg("p", "plots", "Do not produce the plots - can be useful if only the yields table is needed", cmd, false);
 
+    TCLAP::SwitchArg unblindArg("u", "unblind", "Unblind the plots, ie ignore any blinded-range in the configuration", cmd, false);
+
     TCLAP::UnlabeledValueArg<std::string> configFileArg("configFile", "configuration file", true, "", "string", cmd);
 
     cmd.parse(argc, argv);
@@ -1549,6 +1560,7 @@ int main(int argc, char** argv) {
     p.getConfigurationForEditing().verbose = verboseArg.getValue();
     p.getConfigurationForEditing().do_plots = !plotsArg.getValue();
     p.getConfigurationForEditing().do_yields = yieldsArg.getValue();
+    p.getConfigurationForEditing().unblind = unblindArg.getValue();
 
     p.plotAll();
 

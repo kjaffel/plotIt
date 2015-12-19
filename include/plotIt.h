@@ -225,6 +225,9 @@ namespace plotIt {
     std::vector<float> x_axis_range;
     std::vector<float> y_axis_range;
 
+    // Blind range
+    Point blinded_range;
+
     uint16_t binning_x;  // Only used in tree mode
     uint16_t binning_y;  // Only used in tree mode
 
@@ -348,6 +351,10 @@ namespace plotIt {
     std::string yields_table_text_align = "c";
     int yields_table_num_prec_yields = 1;
     int yields_table_num_prec_ratio = 2;
+
+    bool unblind = false;
+    int16_t blinded_range_fill_color = 42;
+    int16_t blinded_range_fill_style = 1001;
 
     Configuration() {
       width = height = 800;

@@ -5,6 +5,7 @@
 #include <TFitResult.h>
 #include <TLatex.h>
 #include <TObject.h>
+#include <TPave.h>
 #include <TVirtualFitter.h>
 #include <TGraphAsymmErrors.h>
 
@@ -174,6 +175,20 @@ namespace plotIt {
       }
     }
 
+    // Blind data if requested
+    std::shared_ptr<TBox> m_blinded_area;
+    if (!m_plotIt.getConfiguration().unblind && h_data.get() && plot.blinded_range.valid()) {
+        float start = plot.blinded_range.x;
+        float end = plot.blinded_range.y;
+
+        size_t start_bin = h_data->FindBin(start);
+        size_t end_bin = h_data->FindBin(end);
+
+        for (size_t i = start_bin; i <= end_bin; i++) {
+            h_data->SetBinContent(i, 0);
+        }
+    }
+
     if (mc_histo_stat_only.get()) {
       mc_histo_syst_only.reset(static_cast<TH1*>(mc_histo_stat_only->Clone()));
       mc_histo_syst_only->SetDirectory(nullptr);
@@ -304,7 +319,8 @@ namespace plotIt {
       safe_margin = 8;
 
     if (plot.y_axis_range.size() != 2) {
-      setMaximum(toDraw[0].first, maximum * (1 + safe_margin));
+      maximum *= 1 + safe_margin;
+      setMaximum(toDraw[0].first, maximum);
 
       if (minimum <= 0 && plot.log_y) {
         double old_minimum = minimum;
@@ -321,6 +337,9 @@ namespace plotIt {
         minimum = 0;
 
       setMinimum(toDraw[0].first, minimum);
+    } else {
+        maximum = plot.y_axis_range[1];
+        minimum = plot.y_axis_range[0];
     }
 
     // First, draw MC
@@ -357,6 +376,25 @@ namespace plotIt {
     for (auto& obj: toDraw) {
       setDefaultStyle(obj.first, (plot.show_ratio) ? 0.6666 : 1.);
       setAxisTitles(obj.first, plot);
+    }
+
+    gPad->Modified();
+    gPad->Update();
+
+    // We have the plot range. Compute the shaded area corresponding to the blinded area, if any
+    if (!m_plotIt.getConfiguration().unblind && h_data.get() && plot.blinded_range.valid()) {
+        float x_start = plot.blinded_range.x;
+        float x_end = plot.blinded_range.y;
+
+        float y_start = gPad->GetUymin();
+        float y_end = gPad->GetUymax();
+
+        std::shared_ptr<TPave> blinded_area(new TPave(x_start, y_start, x_end, y_end, 0, "NB"));
+        blinded_area->SetFillStyle(m_plotIt.getConfiguration().blinded_range_fill_style);
+        blinded_area->SetFillColor(m_plotIt.getConfiguration().blinded_range_fill_color);
+
+        m_plotIt.addTemporaryObject(blinded_area);
+        blinded_area->Draw("same");
     }
 
     // Redraw only axis
