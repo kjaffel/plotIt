@@ -12,6 +12,8 @@ configuration:
   ratio-fit-error-fill-style: 1001
   ratio-fit-error-fill-color: "#aa556270"
   ratio-fit-line-color: "#0B486B"
+  blinded-range-fill-color: "#29556270"
+  blinded-range-fill-style: 1001
 
 files:
   include: ['example_files.yml']
@@ -30,6 +32,7 @@ plots:
     rebin: 4
     log-y: 'both'
     save-extensions: ['pdf']
+    blinded-range: [3, 5.2]
 
   'histo2':
     x-axis: "X axis"
