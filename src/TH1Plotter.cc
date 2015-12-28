@@ -9,6 +9,7 @@
 #include <TVirtualFitter.h>
 #include <TGraphAsymmErrors.h>
 
+#include <pool.h>
 #include <utilities.h>
 
 namespace plotIt {
@@ -345,7 +346,7 @@ namespace plotIt {
     // First, draw MC
     if (mc_stack.get()) {
       mc_stack->Draw("same");
-      m_plotIt.addTemporaryObject(mc_stack);
+      TemporaryPool::get().add(mc_stack);
     }
 
     // Then, if requested, errors
@@ -356,7 +357,7 @@ namespace plotIt {
       mc_histo_stat_syst->SetFillColor(m_plotIt.getConfiguration().error_fill_color);
 
       mc_histo_stat_syst->Draw("E2 same");
-      m_plotIt.addTemporaryObject(mc_histo_stat_syst);
+      TemporaryPool::get().add(mc_histo_stat_syst);
     }
 
     // Then signal
@@ -369,7 +370,7 @@ namespace plotIt {
     if (h_data.get()) {
       data_drawing_options += " E X0 same";
       h_data->Draw(data_drawing_options.c_str());
-      m_plotIt.addTemporaryObject(h_data);
+      TemporaryPool::get().add(h_data);
     }
     
     // Set x and y axis titles, and default style
@@ -393,7 +394,7 @@ namespace plotIt {
         blinded_area->SetFillStyle(m_plotIt.getConfiguration().blinded_range_fill_style);
         blinded_area->SetFillColor(m_plotIt.getConfiguration().blinded_range_fill_color);
 
-        m_plotIt.addTemporaryObject(blinded_area);
+        TemporaryPool::get().add(blinded_area);
         blinded_area->Draw("same");
     }
 
@@ -496,11 +497,11 @@ namespace plotIt {
             t->SetTextSize(LABEL_FONTSIZE - 4);
             t->Draw();
 
-            m_plotIt.addTemporaryObject(t);
+            TemporaryPool::get().add(t);
           }
 
-          m_plotIt.addTemporaryObject(errors);
-          m_plotIt.addTemporaryObject(fct);
+          TemporaryPool::get().add(errors);
+          TemporaryPool::get().add(fct);
         }
       }
 
@@ -510,11 +511,11 @@ namespace plotIt {
       // Hide top pad label
       hideXTitle(toDraw[0].first);
 
-      m_plotIt.addTemporaryObject(h_low_pad_axis);
-      m_plotIt.addTemporaryObject(ratio);
-      m_plotIt.addTemporaryObject(h_systematics);
-      m_plotIt.addTemporaryObject(hi_pad);
-      m_plotIt.addTemporaryObject(low_pad);
+      TemporaryPool::get().add(h_low_pad_axis);
+      TemporaryPool::get().add(ratio);
+      TemporaryPool::get().add(h_systematics);
+      TemporaryPool::get().add(hi_pad);
+      TemporaryPool::get().add(low_pad);
     }
 
     if (plot.fit) {
@@ -562,11 +563,11 @@ namespace plotIt {
           t->SetTextSize(LABEL_FONTSIZE - 4);
           t->Draw();
 
-          m_plotIt.addTemporaryObject(t);
+          TemporaryPool::get().add(t);
         }
 
-        m_plotIt.addTemporaryObject(errors);
-        m_plotIt.addTemporaryObject(fct);
+        TemporaryPool::get().add(errors);
+        TemporaryPool::get().add(fct);
       }
     }
 

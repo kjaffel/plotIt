@@ -138,4 +138,19 @@ namespace plotIt {
 
   // replace all occurences of "old" in "s" by "rep"
   void replace_substr(std::string &s, const std::string &old, const std::string &rep);
+
+  int16_t loadColor(const YAML::Node& node);
+
+  inline std::vector<std::string> glob(const std::string& pat) {
+      glob_t glob_result;
+      glob(pat.c_str(), GLOB_TILDE, NULL, &glob_result);
+
+      std::vector<std::string> ret;
+      for(unsigned int i = 0;i < glob_result.gl_pathc; ++i){
+          ret.push_back(std::string(glob_result.gl_pathv[i]));
+      }
+
+      globfree(&glob_result);
+      return ret;
+  }
 }

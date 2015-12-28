@@ -32,6 +32,7 @@
 #include <boost/format.hpp>
 
 #include <plotters.h>
+#include <pool.h>
 #include <utilities.h>
 
 namespace fs = boost::filesystem;
@@ -59,35 +60,6 @@ namespace plotIt {
       m_style.reset(createStyle());
       parseConfigurationFile(configFile);
     }
-
-  int16_t plotIt::loadColor(const YAML::Node& node) {
-    std::string value = node.as<std::string>();
-    if (value.length() > 1 && value[0] == '#' && ((value.length() == 7) || (value.length() == 9))) {
-      // RGB Color
-      std::string c = value.substr(1);
-      // Convert to int with hexadecimal base
-      uint32_t color = 0;
-      std::stringstream ss;
-      ss << std::hex << c;
-      ss >> color;
-
-      float a = 1;
-      if (color > 0xffffff) {
-        a = (color >> 24) / 255.0;
-      }
-
-      float r = ((color >> 16) & 0xff) / 255.0;
-      float g = ((color >> 8) & 0xff) / 255.0;
-      float b = ((color) & 0xff) / 255.0;
-
-      // Create new color
-      m_temporaryObjectsRuntime.push_back(std::make_shared<TColor>(m_colorIndex++, r, g, b, "", a));
-
-      return m_colorIndex - 1;
-    } else {
-      return node.as<int16_t>();
-    }
-  }
 
   // Replace the "include" fields by the content they point to
   void plotIt::parseIncludes(YAML::Node& node) {
@@ -362,7 +334,7 @@ namespace plotIt {
       }
 
       file.plot_style = std::make_shared<PlotStyle>();
-      file.plot_style->loadFromYAML(node, file, *this);
+      file.plot_style->loadFromYAML(node, file.type);
 
       m_files.push_back(file);
     }
@@ -391,7 +363,7 @@ namespace plotIt {
           continue;
 
       group.plot_style = std::make_shared<PlotStyle>();
-      group.plot_style->loadFromYAML(node, *file, *this);
+      group.plot_style->loadFromYAML(node, file->type);
 
       m_legend_groups[group.name] = group;
     }
@@ -851,7 +823,7 @@ namespace plotIt {
     // Luminosity label
     if (m_config.lumi_label_parsed.length() > 0) {
       std::shared_ptr<TPaveText> pt = std::make_shared<TPaveText>(LEFT_MARGIN, 1 - 0.5 * topMargin, 1 - RIGHT_MARGIN, 1, "brNDC");
-      m_temporaryObjects.push_back(pt);
+      TemporaryPool::get().add(pt);
 
       pt->SetFillStyle(0);
       pt->SetBorderSize(0);
@@ -867,7 +839,7 @@ namespace plotIt {
     // Experiment
     if (m_config.experiment.length() > 0) {
       std::shared_ptr<TPaveText> pt = std::make_shared<TPaveText>(LEFT_MARGIN, 1 - 0.5 * topMargin, 1 - RIGHT_MARGIN, 1, "brNDC");
-      m_temporaryObjects.push_back(pt);
+      TemporaryPool::get().add(pt);
 
       pt->SetFillStyle(0);
       pt->SetBorderSize(0);
@@ -906,7 +878,7 @@ namespace plotIt {
       t->SetTextSize(label.size);
       t->Draw();
 
-      m_temporaryObjects.push_back(t);
+      TemporaryPool::get().add(t);
     }
 
     std::string plot_name = plot.name + plot.output_suffix;
@@ -919,8 +891,8 @@ namespace plotIt {
       c.SaveAs(outputNameWithExtension.string().c_str());
     }
 
-    // Close all opened files
-    m_temporaryObjects.clear();
+    // Clean all temporary resources
+    TemporaryPool::get().clear();
 
     // Reset groups
     for (auto& group: m_legend_groups) {
@@ -1160,7 +1132,7 @@ namespace plotIt {
           hist->SetDirectory(nullptr);
           file.objects.emplace(plot.uid, hist.get());
 
-          m_temporaryObjects.push_back(hist);
+          TemporaryPool::get().add(hist);
         }
 
         return true;
@@ -1180,7 +1152,7 @@ namespace plotIt {
 
       if (obj) {
         std::shared_ptr<TObject> cloned_obj(obj->Clone());
-        m_temporaryObjectsRuntime.push_back(cloned_obj);
+        TemporaryPool::get().addRuntime(cloned_obj);
 
         file.objects.emplace(plot.uid, cloned_obj.get());
 
@@ -1193,7 +1165,7 @@ namespace plotIt {
           obj = syst.handle->Get(plot.name.c_str());
           if (obj) {
             std::shared_ptr<TObject> cloned_obj(obj->Clone());
-            m_temporaryObjectsRuntime.push_back(cloned_obj);
+            TemporaryPool::get().addRuntime(cloned_obj);
             syst.objects.emplace(plot.uid, cloned_obj.get());
           }
         }
@@ -1388,81 +1360,6 @@ namespace plotIt {
     } else {
       return file.plot_style;
     }
-  }
-
-  void PlotStyle::loadFromYAML(YAML::Node& node, const File& file, plotIt& pIt) {
-    if (node["legend"])
-      legend = node["legend"].as<std::string>();
-
-    if (file.type == MC)
-      legend_style = "lf";
-    else if (file.type == SIGNAL)
-      legend_style = "l";
-    else if (file.type == DATA)
-      legend_style = "pe";
-
-    if (node["legend-style"])
-      legend_style = node["legend-style"].as<std::string>();
-
-    if (node["drawing-options"])
-      drawing_options = node["drawing-options"].as<std::string>();
-    else {
-      if (file.type == MC || file.type == SIGNAL)
-        drawing_options = "hist";
-      else if (file.type == DATA)
-        drawing_options = "P";
-    }
-
-    marker_size = -1;
-    marker_color = -1;
-    marker_type = -1;
-
-    fill_color = -1;
-    fill_type = -1;
-
-    line_color = -1;
-    line_type = -1;
-
-    if (file.type == MC) {
-      fill_color = 1;
-      fill_type = 1001;
-      line_width = 0;
-    } else if (file.type == SIGNAL) {
-      fill_type = 0;
-      line_color = 1;
-      line_width = 1;
-      line_type = 2;
-    } else {
-      marker_size = 1;
-      marker_color = 1;
-      marker_type = 20;
-      line_color = 1;
-      line_width = 1; // For uncertainties
-    }
-
-    if (node["fill-color"])
-      fill_color = pIt.loadColor(node["fill-color"]);
-
-    if (node["fill-type"])
-      fill_type = node["fill-type"].as<int16_t>();
-
-    if (node["line-color"])
-      line_color = pIt.loadColor(node["line-color"]);
-
-    if (node["line-type"])
-      line_type = node["line-type"].as<int16_t>();
-
-    if (node["line-width"])
-      line_width = node["line-width"].as<float>();
-
-    if (node["marker-color"])
-      marker_color = pIt.loadColor(node["marker-color"]);
-
-    if (node["marker-type"])
-      marker_type = node["marker-type"].as<int16_t>();
-
-    if (node["marker-size"])
-      marker_size = node["marker-size"].as<float>();
   }
 }
 
