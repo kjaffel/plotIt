@@ -1,6 +1,8 @@
 plotIt
 ======
 
+[![Build Status](https://travis-ci.org/cp3-llbb/plotIt.svg)](https://travis-ci.org/cp3-llbb/plotIt)
+
 An utility to plot ROOT histograms.
 
 ## First time setup instructions

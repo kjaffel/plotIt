@@ -5,9 +5,8 @@ DllSuf = so
 ROOTCFLAGS = $(shell root-config --cflags)
 ROOTLIBS   = $(shell root-config --noldflags --libs)
 
-CXX      = g++
 CXXFLAGS = -g -Wall -fPIC --std=c++11 -O3
-LD       = g++
+LD       = $(CXX)
 LDDIR    = -L$(shell root-config --libdir) -Lexternal/lib -L$(BOOST_ROOT)/lib/
 LDFLAGS  = -fPIC $(shell root-config --ldflags) $(LDDIR)
 SOFLAGS  =
