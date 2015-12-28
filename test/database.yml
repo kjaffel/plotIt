@@ -1,6 +1,0 @@
-database:
-  user: root
-  password: ""
-  host: localhost
-  database: database
-  debug: true

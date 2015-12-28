@@ -1,5 +1,4 @@
 #include "plotIt.h"
-#include <samadhi/Database.h>
 
 // For fnmatch()
 #include <fnmatch.h>
@@ -275,35 +274,6 @@ namespace plotIt {
         m_config.yields_table_num_prec_ratio = node["yields-table-numerical-precision-ratio"].as<int>();
     }
 
-    // Database
-    if (f["database"]) {
-        YAML::Node db = f["database"];
-
-        auto config = std::make_shared<sqlpp::mysql::connection_config>();
-        config->host = "localhost";
-        config->user = "root";
-        config->debug = false;
-
-        if (db["host"])
-            config->host = db["host"].as<std::string>();
-
-        if (db["user"])
-            config->user = db["user"].as<std::string>();
-
-        if (db["password"])
-            config->password = db["password"].as<std::string>();
-
-        if (db["database"])
-            config->database = db["database"].as<std::string>();
-
-        if (db["debug"])
-            config->debug = db["debug"].as<bool>();
-
-        std::cout << "Connecting to SAMADhi..." << std::endl;
-        Database::get().connect(config);
-        std::cout << "Connected." << std::endl << std::endl;
-    }
-
     // Retrieve files/processes configuration
     YAML::Node files = f["files"];
 
@@ -333,13 +303,8 @@ namespace plotIt {
       else
         file.scale = 1;
 
-      if (file.type != DATA && Database::get().connected()) {
-        file.cross_section = -1.;
-        file.generated_events = -1.;
-      } else {
-        file.cross_section = 1.;
-        file.generated_events = 1.;
-      }
+      file.cross_section = 1.;
+      file.generated_events = 1.;
 
       if (node["cross-section"])
         file.cross_section = node["cross-section"].as<float>();
@@ -398,24 +363,6 @@ namespace plotIt {
 
       file.plot_style = std::make_shared<PlotStyle>();
       file.plot_style->loadFromYAML(node, file, *this);
-
-      // Query the database if needed
-      if (file.cross_section < 0 || file.generated_events < 0) {
-
-        if (!node["sample-name"]) {
-          throw YAML::ParserException(YAML::Mark::null_mark(), "No cross-section or number of generated events specified for this sample. I would like to retrieve these information from the database, but you did not specified the sample name using the 'sample-name' option.");
-        }
-
-        std::string tag = node["sample-name"].as<std::string>();
-
-        if (file.cross_section < 0) {
-            file.cross_section = Database::get().get_xsection(tag);
-        }
-
-        if (file.generated_events < 0) {
-            file.generated_events = Database::get().get_normalization(tag);
-        }
-      }
 
       m_files.push_back(file);
     }

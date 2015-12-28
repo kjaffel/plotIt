@@ -29,38 +29,3 @@ make install
 
 cd ..
 rm tclap-1.2.1.tar.gz
-
-# sqlpp11
-curl -L "https://github.com/rbock/sqlpp11/archive/{0.34.tar.gz}" -o "sqlpp11_#1"
-tar xf sqlpp11_0.34.tar.gz
-
-cd sqlpp11-0.34
-
-patch -p1 < ../sqlpp11-0.34.patch
-
-mkdir build
-cd build
-
-cmake -DBoost_NO_BOOST_CMAKE=TRUE -DCMAKE_INSTALL_PREFIX:PATH=../../ ..
-
-make -j4
-make install
-
-cd ../..
-rm sqlpp11_0.34.tar.gz
-
-# sqlpp11 mysql connector
-curl -L "https://github.com/rbock/sqlpp11-connector-mysql/archive/{0.12.tar.gz}" -o "sqlpp11-connector-mysql_#1"
-tar xf sqlpp11-connector-mysql_0.12.tar.gz
-
-cd sqlpp11-connector-mysql-0.12
-mkdir build
-cd build
-
-cmake -DCMAKE_INSTALL_PREFIX:PATH=../../ -DSQLPP11_INCLUDE_DIR:FILEPATH=$PWD/../../include -DCMAKE_EXE_LINKER_FLAGS="`mysql_config --libs`" ..
-
-make -j4
-make install
-
-cd ../..
-rm sqlpp11-connector-mysql_0.12.tar.gz
