@@ -1,8 +1,12 @@
+#include <pool.h>
 #include <utilities.h>
+
+#include <yaml-cpp/yaml.h>
 
 #include <TH1.h>
 #include <THStack.h>
 #include <TStyle.h>
+#include <TColor.h>
 
 namespace plotIt {
 
@@ -175,5 +179,35 @@ namespace plotIt {
     size_t pos(0);
     while( (pos = s.find(old, !pos ? 0 : pos+rep.size())) != std::string::npos )
       s.replace(pos, old.size(), rep);
+  }
+
+  int16_t loadColor(const YAML::Node& node) {
+    static uint32_t s_colorIndex = 1000;
+    std::string value = node.as<std::string>();
+    if (value.length() > 1 && value[0] == '#' && ((value.length() == 7) || (value.length() == 9))) {
+      // RGB Color
+      std::string c = value.substr(1);
+      // Convert to int with hexadecimal base
+      uint32_t color = 0;
+      std::stringstream ss;
+      ss << std::hex << c;
+      ss >> color;
+
+      float a = 1;
+      if (color > 0xffffff) {
+        a = (color >> 24) / 255.0;
+      }
+
+      float r = ((color >> 16) & 0xff) / 255.0;
+      float g = ((color >> 8) & 0xff) / 255.0;
+      float b = ((color) & 0xff) / 255.0;
+
+      // Create new color
+      TemporaryPool::get().addRuntime(std::make_shared<TColor>(s_colorIndex++, r, g, b, "", a));
+
+      return s_colorIndex - 1;
+    } else {
+      return node.as<int16_t>();
+    }
   }
 }

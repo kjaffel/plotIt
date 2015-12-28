@@ -1,5 +1,4 @@
 #include "plotIt.h"
-#include <samadhi/Database.h>
 
 // For fnmatch()
 #include <fnmatch.h>
@@ -33,6 +32,7 @@
 #include <boost/format.hpp>
 
 #include <plotters.h>
+#include <pool.h>
 #include <utilities.h>
 
 namespace fs = boost::filesystem;
@@ -60,35 +60,6 @@ namespace plotIt {
       m_style.reset(createStyle());
       parseConfigurationFile(configFile);
     }
-
-  int16_t plotIt::loadColor(const YAML::Node& node) {
-    std::string value = node.as<std::string>();
-    if (value.length() > 1 && value[0] == '#' && ((value.length() == 7) || (value.length() == 9))) {
-      // RGB Color
-      std::string c = value.substr(1);
-      // Convert to int with hexadecimal base
-      uint32_t color = 0;
-      std::stringstream ss;
-      ss << std::hex << c;
-      ss >> color;
-
-      float a = 1;
-      if (color > 0xffffff) {
-        a = (color >> 24) / 255.0;
-      }
-
-      float r = ((color >> 16) & 0xff) / 255.0;
-      float g = ((color >> 8) & 0xff) / 255.0;
-      float b = ((color) & 0xff) / 255.0;
-
-      // Create new color
-      m_temporaryObjectsRuntime.push_back(std::make_shared<TColor>(m_colorIndex++, r, g, b, "", a));
-
-      return m_colorIndex - 1;
-    } else {
-      return node.as<int16_t>();
-    }
-  }
 
   // Replace the "include" fields by the content they point to
   void plotIt::parseIncludes(YAML::Node& node) {
@@ -242,7 +213,6 @@ namespace plotIt {
         m_config.labels = parseLabelsNode(labels);
       }
 
-      m_config.y_axis_format = "%1% / %2$.2f";
       if (node["y-axis-format"])
         m_config.y_axis_format = node["y-axis-format"].as<std::string>();
 
@@ -255,7 +225,6 @@ namespace plotIt {
       if (node["show-overflow"])
           m_config.show_overflow = node["show-overflow"].as<bool>();
 
-      m_config.errors_type = Poisson;
       if (node["errors-type"])
           m_config.errors_type = string_to_errors_type(node["errors-type"].as<std::string>());
       
@@ -273,35 +242,6 @@ namespace plotIt {
 
       if (node["yields-table-numerical-precision-ratio"])
         m_config.yields_table_num_prec_ratio = node["yields-table-numerical-precision-ratio"].as<int>();
-    }
-
-    // Database
-    if (f["database"]) {
-        YAML::Node db = f["database"];
-
-        auto config = std::make_shared<sqlpp::mysql::connection_config>();
-        config->host = "localhost";
-        config->user = "root";
-        config->debug = false;
-
-        if (db["host"])
-            config->host = db["host"].as<std::string>();
-
-        if (db["user"])
-            config->user = db["user"].as<std::string>();
-
-        if (db["password"])
-            config->password = db["password"].as<std::string>();
-
-        if (db["database"])
-            config->database = db["database"].as<std::string>();
-
-        if (db["debug"])
-            config->debug = db["debug"].as<bool>();
-
-        std::cout << "Connecting to SAMADhi..." << std::endl;
-        Database::get().connect(config);
-        std::cout << "Connected." << std::endl << std::endl;
     }
 
     // Retrieve files/processes configuration
@@ -325,40 +265,25 @@ namespace plotIt {
           file.type = DATA;
         else
           file.type = MC;
-      } else
-        file.type = MC;
+      }
 
       if (node["scale"])
         file.scale = node["scale"].as<float>();
-      else
-        file.scale = 1;
-
-      if (file.type != DATA && Database::get().connected()) {
-        file.cross_section = -1.;
-        file.generated_events = -1.;
-      } else {
-        file.cross_section = 1.;
-        file.generated_events = 1.;
-      }
 
       if (node["cross-section"])
         file.cross_section = node["cross-section"].as<float>();
 
       if (node["branching-ratio"])
         file.branching_ratio = node["branching-ratio"].as<float>();
-      else
-        file.branching_ratio = 1;
 
       if (node["generated-events"])
         file.generated_events = node["generated-events"].as<float>();
 
-      file.order = std::numeric_limits<int16_t>::min();
       if (node["order"])
         file.order = node["order"].as<int16_t>();
 
-      if (node["group"]) {
+      if (node["group"])
         file.legend_group = node["group"].as<std::string>();
-      }
 
       if (node["yields-group"]) {
         file.yields_group = node["yields-group"].as<std::string>();
@@ -397,25 +322,7 @@ namespace plotIt {
       }
 
       file.plot_style = std::make_shared<PlotStyle>();
-      file.plot_style->loadFromYAML(node, file, *this);
-
-      // Query the database if needed
-      if (file.cross_section < 0 || file.generated_events < 0) {
-
-        if (!node["sample-name"]) {
-          throw YAML::ParserException(YAML::Mark::null_mark(), "No cross-section or number of generated events specified for this sample. I would like to retrieve these information from the database, but you did not specified the sample name using the 'sample-name' option.");
-        }
-
-        std::string tag = node["sample-name"].as<std::string>();
-
-        if (file.cross_section < 0) {
-            file.cross_section = Database::get().get_xsection(tag);
-        }
-
-        if (file.generated_events < 0) {
-            file.generated_events = Database::get().get_normalization(tag);
-        }
-      }
+      file.plot_style->loadFromYAML(node, file.type);
 
       m_files.push_back(file);
     }
@@ -444,7 +351,7 @@ namespace plotIt {
           continue;
 
       group.plot_style = std::make_shared<PlotStyle>();
-      group.plot_style->loadFromYAML(node, *file, *this);
+      group.plot_style->loadFromYAML(node, file->type);
 
       m_legend_groups[group.name] = group;
     }
@@ -475,7 +382,6 @@ namespace plotIt {
       if (node["x-axis"])
         plot.x_axis = node["x-axis"].as<std::string>();
 
-      plot.y_axis = "Events";
       if (node["y-axis"])
         plot.y_axis = node["y-axis"].as<std::string>();
 
@@ -483,7 +389,6 @@ namespace plotIt {
       if (node["y-axis-format"])
         plot.y_axis_format = node["y-axis-format"].as<std::string>();
 
-      plot.normalized = false;
       if (node["normalized"])
         plot.normalized = node["normalized"].as<bool>();
 
@@ -509,13 +414,9 @@ namespace plotIt {
 
       if (node["save-extensions"])
         plot.save_extensions = node["save-extensions"].as<std::vector<std::string>>();
-      else
-        plot.save_extensions = {"pdf"};
 
       if (node["show-ratio"])
         plot.show_ratio = node["show-ratio"].as<bool>();
-      else
-        plot.show_ratio = false;
 
       if (node["fit-ratio"])
         plot.fit_ratio = node["fit-ratio"].as<bool>();
@@ -549,8 +450,6 @@ namespace plotIt {
 
       if (node["show-errors"])
         plot.show_errors = node["show-errors"].as<bool>();
-      else
-        plot.show_errors = true;
 
       if (node["x-axis-range"])
         plot.x_axis_range = node["x-axis-range"].as<std::vector<float>>();
@@ -561,19 +460,14 @@ namespace plotIt {
       if (node["blinded-range"])
         plot.blinded_range = node["blinded-range"].as<Point>();
 
-      plot.y_axis_show_zero = false;
       if (node["y-axis-show-zero"])
         plot.y_axis_show_zero = node["y-axis-show-zero"].as<bool>();
 
       if (node["inherits-from"])
         plot.inherits_from = node["inherits-from"].as<std::string>();
-      else
-        plot.inherits_from = "TH1";
 
       if (node["rebin"])
         plot.rebin = node["rebin"].as<uint16_t>();
-      else
-        plot.rebin = 1;
 
       if (node["labels"]) {
         YAML::Node labels = node["labels"];
@@ -904,7 +798,7 @@ namespace plotIt {
     // Luminosity label
     if (m_config.lumi_label_parsed.length() > 0) {
       std::shared_ptr<TPaveText> pt = std::make_shared<TPaveText>(LEFT_MARGIN, 1 - 0.5 * topMargin, 1 - RIGHT_MARGIN, 1, "brNDC");
-      m_temporaryObjects.push_back(pt);
+      TemporaryPool::get().add(pt);
 
       pt->SetFillStyle(0);
       pt->SetBorderSize(0);
@@ -920,7 +814,7 @@ namespace plotIt {
     // Experiment
     if (m_config.experiment.length() > 0) {
       std::shared_ptr<TPaveText> pt = std::make_shared<TPaveText>(LEFT_MARGIN, 1 - 0.5 * topMargin, 1 - RIGHT_MARGIN, 1, "brNDC");
-      m_temporaryObjects.push_back(pt);
+      TemporaryPool::get().add(pt);
 
       pt->SetFillStyle(0);
       pt->SetBorderSize(0);
@@ -959,7 +853,7 @@ namespace plotIt {
       t->SetTextSize(label.size);
       t->Draw();
 
-      m_temporaryObjects.push_back(t);
+      TemporaryPool::get().add(t);
     }
 
     std::string plot_name = plot.name + plot.output_suffix;
@@ -972,8 +866,8 @@ namespace plotIt {
       c.SaveAs(outputNameWithExtension.string().c_str());
     }
 
-    // Close all opened files
-    m_temporaryObjects.clear();
+    // Clean all temporary resources
+    TemporaryPool::get().clear();
 
     // Reset groups
     for (auto& group: m_legend_groups) {
@@ -1213,7 +1107,7 @@ namespace plotIt {
           hist->SetDirectory(nullptr);
           file.objects.emplace(plot.uid, hist.get());
 
-          m_temporaryObjects.push_back(hist);
+          TemporaryPool::get().add(hist);
         }
 
         return true;
@@ -1233,7 +1127,7 @@ namespace plotIt {
 
       if (obj) {
         std::shared_ptr<TObject> cloned_obj(obj->Clone());
-        m_temporaryObjectsRuntime.push_back(cloned_obj);
+        TemporaryPool::get().addRuntime(cloned_obj);
 
         file.objects.emplace(plot.uid, cloned_obj.get());
 
@@ -1246,7 +1140,7 @@ namespace plotIt {
           obj = syst.handle->Get(plot.name.c_str());
           if (obj) {
             std::shared_ptr<TObject> cloned_obj(obj->Clone());
-            m_temporaryObjectsRuntime.push_back(cloned_obj);
+            TemporaryPool::get().addRuntime(cloned_obj);
             syst.objects.emplace(plot.uid, cloned_obj.get());
           }
         }
@@ -1441,81 +1335,6 @@ namespace plotIt {
     } else {
       return file.plot_style;
     }
-  }
-
-  void PlotStyle::loadFromYAML(YAML::Node& node, const File& file, plotIt& pIt) {
-    if (node["legend"])
-      legend = node["legend"].as<std::string>();
-
-    if (file.type == MC)
-      legend_style = "lf";
-    else if (file.type == SIGNAL)
-      legend_style = "l";
-    else if (file.type == DATA)
-      legend_style = "pe";
-
-    if (node["legend-style"])
-      legend_style = node["legend-style"].as<std::string>();
-
-    if (node["drawing-options"])
-      drawing_options = node["drawing-options"].as<std::string>();
-    else {
-      if (file.type == MC || file.type == SIGNAL)
-        drawing_options = "hist";
-      else if (file.type == DATA)
-        drawing_options = "P";
-    }
-
-    marker_size = -1;
-    marker_color = -1;
-    marker_type = -1;
-
-    fill_color = -1;
-    fill_type = -1;
-
-    line_color = -1;
-    line_type = -1;
-
-    if (file.type == MC) {
-      fill_color = 1;
-      fill_type = 1001;
-      line_width = 0;
-    } else if (file.type == SIGNAL) {
-      fill_type = 0;
-      line_color = 1;
-      line_width = 1;
-      line_type = 2;
-    } else {
-      marker_size = 1;
-      marker_color = 1;
-      marker_type = 20;
-      line_color = 1;
-      line_width = 1; // For uncertainties
-    }
-
-    if (node["fill-color"])
-      fill_color = pIt.loadColor(node["fill-color"]);
-
-    if (node["fill-type"])
-      fill_type = node["fill-type"].as<int16_t>();
-
-    if (node["line-color"])
-      line_color = pIt.loadColor(node["line-color"]);
-
-    if (node["line-type"])
-      line_type = node["line-type"].as<int16_t>();
-
-    if (node["line-width"])
-      line_width = node["line-width"].as<float>();
-
-    if (node["marker-color"])
-      marker_color = pIt.loadColor(node["marker-color"]);
-
-    if (node["marker-type"])
-      marker_type = node["marker-type"].as<int16_t>();
-
-    if (node["marker-size"])
-      marker_size = node["marker-size"].as<float>();
   }
 }
 
