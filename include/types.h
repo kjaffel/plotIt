@@ -105,14 +105,14 @@ namespace plotIt {
     std::string legend_group;
     std::string yields_group;
 
-    Type type;
+    Type type = MC;
 
     TObject* object = nullptr;
     std::map<std::string, TObject*> objects;
 
     std::vector<Systematic> systematics;
 
-    int16_t order = 0;
+    int16_t order = std::numeric_limits<int16_t>::min();
     Summary summary;
 
     std::shared_ptr<TChain> chain;
@@ -185,13 +185,14 @@ namespace plotIt {
 
     bool no_data = false;
     bool override = false; // flag to plot only those which have it true (if at least one plot has it true)
-    bool normalized;
-    bool log_y;
-    bool log_x;
+    bool normalized = false;
+    bool log_y = false;
+    bool log_x = false;
 
     std::string x_axis;
-    std::string y_axis;
+    std::string y_axis = "Events";
     std::string y_axis_format;
+    bool y_axis_show_zero = false;
 
     // Axis range
     std::vector<float> x_axis_range;
@@ -206,11 +207,10 @@ namespace plotIt {
     std::string draw_string;  // Only used in tree mode
     std::string selection_string;  // Only used in tree mode
 
-    bool y_axis_show_zero;
 
-    std::vector<std::string> save_extensions;
+    std::vector<std::string> save_extensions = {"pdf"};
 
-    bool show_ratio;
+    bool show_ratio = false;
 
     bool fit = false;
     std::string fit_function = "gaus";
@@ -224,12 +224,12 @@ namespace plotIt {
     Point ratio_fit_legend_position = {0.20, 0.38};
     Point ratio_fit_range;
 
-    bool show_errors;
+    bool show_errors = true;
     bool show_overflow = false;
 
-    std::string inherits_from;
+    std::string inherits_from = "TH1";
 
-    uint16_t rebin;
+    uint16_t rebin = 1;
 
     std::vector<Label> labels;
 
@@ -278,7 +278,7 @@ namespace plotIt {
     // Systematics
     float luminosity_error_percent = 0;
 
-    std::string y_axis_format;
+    std::string y_axis_format = "%1% / %2$.2f";
 
     int16_t error_fill_color = 42;
     int16_t error_fill_style = 3154;
@@ -305,7 +305,7 @@ namespace plotIt {
     std::string lumi_label;
     std::string lumi_label_parsed;
 
-    std::string root;
+    std::string root = "./";
 
     bool ignore_scales = false;
     bool verbose = false;

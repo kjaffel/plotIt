@@ -213,7 +213,6 @@ namespace plotIt {
         m_config.labels = parseLabelsNode(labels);
       }
 
-      m_config.y_axis_format = "%1% / %2$.2f";
       if (node["y-axis-format"])
         m_config.y_axis_format = node["y-axis-format"].as<std::string>();
 
@@ -226,7 +225,6 @@ namespace plotIt {
       if (node["show-overflow"])
           m_config.show_overflow = node["show-overflow"].as<bool>();
 
-      m_config.errors_type = Poisson;
       if (node["errors-type"])
           m_config.errors_type = string_to_errors_type(node["errors-type"].as<std::string>());
       
@@ -267,35 +265,25 @@ namespace plotIt {
           file.type = DATA;
         else
           file.type = MC;
-      } else
-        file.type = MC;
+      }
 
       if (node["scale"])
         file.scale = node["scale"].as<float>();
-      else
-        file.scale = 1;
-
-      file.cross_section = 1.;
-      file.generated_events = 1.;
 
       if (node["cross-section"])
         file.cross_section = node["cross-section"].as<float>();
 
       if (node["branching-ratio"])
         file.branching_ratio = node["branching-ratio"].as<float>();
-      else
-        file.branching_ratio = 1;
 
       if (node["generated-events"])
         file.generated_events = node["generated-events"].as<float>();
 
-      file.order = std::numeric_limits<int16_t>::min();
       if (node["order"])
         file.order = node["order"].as<int16_t>();
 
-      if (node["group"]) {
+      if (node["group"])
         file.legend_group = node["group"].as<std::string>();
-      }
 
       if (node["yields-group"]) {
         file.yields_group = node["yields-group"].as<std::string>();
@@ -394,7 +382,6 @@ namespace plotIt {
       if (node["x-axis"])
         plot.x_axis = node["x-axis"].as<std::string>();
 
-      plot.y_axis = "Events";
       if (node["y-axis"])
         plot.y_axis = node["y-axis"].as<std::string>();
 
@@ -402,7 +389,6 @@ namespace plotIt {
       if (node["y-axis-format"])
         plot.y_axis_format = node["y-axis-format"].as<std::string>();
 
-      plot.normalized = false;
       if (node["normalized"])
         plot.normalized = node["normalized"].as<bool>();
 
@@ -428,13 +414,9 @@ namespace plotIt {
 
       if (node["save-extensions"])
         plot.save_extensions = node["save-extensions"].as<std::vector<std::string>>();
-      else
-        plot.save_extensions = {"pdf"};
 
       if (node["show-ratio"])
         plot.show_ratio = node["show-ratio"].as<bool>();
-      else
-        plot.show_ratio = false;
 
       if (node["fit-ratio"])
         plot.fit_ratio = node["fit-ratio"].as<bool>();
@@ -468,8 +450,6 @@ namespace plotIt {
 
       if (node["show-errors"])
         plot.show_errors = node["show-errors"].as<bool>();
-      else
-        plot.show_errors = true;
 
       if (node["x-axis-range"])
         plot.x_axis_range = node["x-axis-range"].as<std::vector<float>>();
@@ -480,19 +460,14 @@ namespace plotIt {
       if (node["blinded-range"])
         plot.blinded_range = node["blinded-range"].as<Point>();
 
-      plot.y_axis_show_zero = false;
       if (node["y-axis-show-zero"])
         plot.y_axis_show_zero = node["y-axis-show-zero"].as<bool>();
 
       if (node["inherits-from"])
         plot.inherits_from = node["inherits-from"].as<std::string>();
-      else
-        plot.inherits_from = "TH1";
 
       if (node["rebin"])
         plot.rebin = node["rebin"].as<uint16_t>();
-      else
-        plot.rebin = 1;
 
       if (node["labels"]) {
         YAML::Node labels = node["labels"];
