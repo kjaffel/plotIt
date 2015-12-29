@@ -58,6 +58,9 @@ namespace plotIt {
 
       gErrorIgnoreLevel = kError;
       m_style.reset(createStyle());
+
+      TH1::AddDirectory(false);
+
       parseConfigurationFile(configFile);
     }
 
