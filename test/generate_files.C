@@ -5,8 +5,6 @@
 #include <TFormula.h>
 #include <TF1.h>
 
-#include <iostream>
-
 void generate_files() {
     const float luminosity = 1;
 
@@ -17,7 +15,6 @@ void generate_files() {
     const float mc2_xsection = 666.3;
 
     const uint32_t n_data = luminosity * ( mc1_xsection + mc2_xsection);
-    std::cout << n_data << std::endl;
 
     auto sqroot = new TFormula("sqroot", "x*gaus(0) + [3]*abs(sin(x)/x)");
     auto sqroot_tf = new TF1("sqroot_tf", "sqroot", 0, 10);

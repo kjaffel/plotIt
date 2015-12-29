@@ -21,9 +21,16 @@ addons:
       - git
       - make
       - uuid-dev
-      - libboost1.55-all-dev
+      - libboost1.55-dev
+      - libboost-filesystem1.55-dev
+      - libboost-regex1.55-dev
+      - libboost-system1.55-dev
 
 install:
+  - export CXX=g++-4.9
+  - export CC=gcc-4.9
+  - export PATH=$HOME/.local/bin:$PATH
+  - pip install --user pyyaml requests
   - wget http://sbrochet.web.cern.ch/sbrochet/public/ROOT-${ROOT_VERSION}_Python-2.7_Ubuntu-12.04_gcc4.9.tar.xz
   - mkdir root
   - cd root
@@ -39,6 +46,4 @@ before_script:
   - cd ..
 
 script:
-  - make -j2
-
-
+  - make -j2 && cd test && ./run_tests.sh
