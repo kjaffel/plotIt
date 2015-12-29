@@ -182,7 +182,7 @@ namespace plotIt {
   }
 
   int16_t loadColor(const YAML::Node& node) {
-    static uint32_t s_colorIndex = 1000;
+    static uint32_t s_colorIndex = 5000;
     std::string value = node.as<std::string>();
     if (value.length() > 1 && value[0] == '#' && ((value.length() == 7) || (value.length() == 9))) {
       // RGB Color
@@ -203,9 +203,10 @@ namespace plotIt {
       float b = ((color) & 0xff) / 255.0;
 
       // Create new color
-      TemporaryPool::get().addRuntime(std::make_shared<TColor>(s_colorIndex++, r, g, b, "", a));
+      auto color_ptr = std::make_shared<TColor>(s_colorIndex++, r, g, b, value.c_str(), a);
+      TemporaryPool::get().addRuntime(color_ptr);
 
-      return s_colorIndex - 1;
+      return color_ptr->GetNumber();
     } else {
       return node.as<int16_t>();
     }
