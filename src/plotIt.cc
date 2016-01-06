@@ -1123,6 +1123,7 @@ namespace plotIt {
     std::vector<std::shared_ptr<TFile>> systematic_files;
     for (Systematic& syst: file.systematics) {
       syst.handle.reset(TFile::Open(syst.path.c_str()));
+      syst.objects.clear();
     }
 
     for (const auto& plot: plots) {
@@ -1138,7 +1139,6 @@ namespace plotIt {
         for (Systematic& syst: file.systematics) {
 
           syst.object = nullptr;
-          syst.objects.clear();
 
           obj = syst.handle->Get(plot.name.c_str());
           if (obj) {
