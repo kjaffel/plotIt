@@ -118,16 +118,16 @@ namespace plotIt {
   void setMinimum(TObject* object, float minimum);
 
   template<class T>
-    void setRange(T* object, Plot& plot, bool onlyX = false) {
-      if (plot.x_axis_range.size() == 2)
-        object->GetXaxis()->SetRangeUser(plot.x_axis_range[0], plot.x_axis_range[1]);
-      if (!onlyX && plot.y_axis_range.size() == 2) {
-        object->SetMinimum(plot.y_axis_range[0]);
-        object->SetMaximum(plot.y_axis_range[1]);
+    void setRange(T* object, const Range& x_range, const Range& y_range) {
+      if (x_range.valid())
+        object->GetXaxis()->SetRangeUser(x_range.start, x_range.end);
+      if (y_range.valid()) {
+        object->SetMinimum(y_range.start);
+        object->SetMaximum(y_range.end);
       }
     }
 
-  void setRange(TObject* object, Plot& plot, bool onlyX = false);
+  void setRange(TObject* object, const Range& x_range, const Range& y_range);
 
   template<class T>
   float getPositiveMinimum(T* object) {

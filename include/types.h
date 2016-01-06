@@ -148,6 +148,28 @@ namespace plotIt {
     }
   };
 
+  struct Range {
+    float start = std::numeric_limits<float>::quiet_NaN();
+    float end = std::numeric_limits<float>::quiet_NaN();
+
+    bool operator==(const Range& other) {
+      return
+        (std::abs(start - other.start) < 1e-6) &&
+        (std::abs(end - other.end) < 1e-6);
+    }
+
+    bool valid() const {
+      return !std::isnan(start) && !std::isnan(end);
+    }
+
+    Range() = default;
+    Range(std::initializer_list<float> c) {
+      assert(c.size() == 2);
+      start = *c.begin();
+      end = *(c.begin() + 1);
+    }
+  };
+
   struct Position {
     float x1 = 0;
     float y1 = 0;
@@ -195,11 +217,11 @@ namespace plotIt {
     bool y_axis_show_zero = false;
 
     // Axis range
-    std::vector<float> x_axis_range;
-    std::vector<float> y_axis_range;
+    Range x_axis_range;
+    Range y_axis_range;
 
     // Blind range
-    Point blinded_range;
+    Range blinded_range;
 
     uint16_t binning_x;  // Only used in tree mode
     uint16_t binning_y;  // Only used in tree mode
@@ -216,13 +238,13 @@ namespace plotIt {
     std::string fit_function = "gaus";
     std::string fit_legend = "#scale[1.6]{#splitline{#mu = %2$.3f}{#sigma = %3$.3f}}";
     Point fit_legend_position = {0.22, 0.87};
-    Point fit_range;
+    Range fit_range;
 
     bool fit_ratio = false;
     std::string ratio_fit_function = "pol1";
     std::string ratio_fit_legend;
     Point ratio_fit_legend_position = {0.20, 0.38};
-    Point ratio_fit_range;
+    Range ratio_fit_range;
 
     bool show_errors = true;
     bool show_overflow = false;
@@ -372,6 +394,27 @@ namespace YAML {
 
         rhs.x = node[0].as<float>();
         rhs.y = node[1].as<float>();
+
+        return true;
+      }
+    };
+
+  template<>
+    struct convert<plotIt::Range> {
+      static Node encode(const plotIt::Range& rhs) {
+        Node node;
+        node.push_back(rhs.start);
+        node.push_back(rhs.end);
+
+        return node;
+      }
+
+      static bool decode(const Node& node, plotIt::Range& rhs) {
+        if(!node.IsSequence() || node.size() != 2)
+          return false;
+
+        rhs.start = node[0].as<float>();
+        rhs.end = node[1].as<float>();
 
         return true;
       }

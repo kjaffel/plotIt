@@ -437,7 +437,7 @@ namespace plotIt {
         plot.fit_legend_position = node["fit-legend-position"].as<Point>();
 
       if (node["fit-range"])
-        plot.fit_range = node["fit-range"].as<Point>();
+        plot.fit_range = node["fit-range"].as<Range>();
 
       if (node["ratio-fit-function"])
         plot.ratio_fit_function = node["ratio-fit-function"].as<std::string>();
@@ -449,19 +449,19 @@ namespace plotIt {
         plot.ratio_fit_legend_position = node["ratio-fit-legend-position"].as<Point>();
 
       if (node["ratio-fit-range"])
-        plot.ratio_fit_range = node["ratio-fit-range"].as<Point>();
+        plot.ratio_fit_range = node["ratio-fit-range"].as<Range>();
 
       if (node["show-errors"])
         plot.show_errors = node["show-errors"].as<bool>();
 
       if (node["x-axis-range"])
-        plot.x_axis_range = node["x-axis-range"].as<std::vector<float>>();
+        plot.x_axis_range = node["x-axis-range"].as<Range>();
 
       if (node["y-axis-range"])
-        plot.y_axis_range = node["y-axis-range"].as<std::vector<float>>();
+        plot.y_axis_range = node["y-axis-range"].as<Range>();
 
       if (node["blinded-range"])
-        plot.blinded_range = node["blinded-range"].as<Point>();
+        plot.blinded_range = node["blinded-range"].as<Range>();
 
       if (node["y-axis-show-zero"])
         plot.y_axis_show_zero = node["y-axis-show-zero"].as<bool>();
@@ -1102,7 +1102,7 @@ namespace plotIt {
         }
 
         for (const auto& plot: plots) {
-          std::shared_ptr<TH1> hist(new TH1F(plot.name.c_str(), "", plot.binning_x, plot.x_axis_range[0], plot.x_axis_range[1]));
+          std::shared_ptr<TH1> hist(new TH1F(plot.name.c_str(), "", plot.binning_x, plot.x_axis_range.start, plot.x_axis_range.end));
           hist->GetDirectory()->cd();
 
           file.chain->Draw((plot.draw_string + ">>" + plot.name).c_str(), plot.selection_string.c_str());

@@ -159,8 +159,8 @@ namespace plotIt {
     CAST_AND_CALL(object, setMinimum, minimum);
   }
 
-  void setRange(TObject* object, Plot& plot, bool onlyX/* = false*/) {
-    CAST_AND_CALL(object, setRange, plot, onlyX);
+  void setRange(TObject* object, const Range& x_range, const Range& y_range) {
+    CAST_AND_CALL(object, setRange, x_range, y_range);
   }
 
   float getPositiveMinimum(TObject* object) {
