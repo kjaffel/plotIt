@@ -179,8 +179,8 @@ namespace plotIt {
     // Blind data if requested
     std::shared_ptr<TBox> m_blinded_area;
     if (!m_plotIt.getConfiguration().unblind && h_data.get() && plot.blinded_range.valid()) {
-        float start = plot.blinded_range.x;
-        float end = plot.blinded_range.y;
+        float start = plot.blinded_range.start;
+        float end = plot.blinded_range.end;
 
         size_t start_bin = h_data->FindBin(start);
         size_t end_bin = h_data->FindBin(end);
@@ -313,13 +313,13 @@ namespace plotIt {
     }
 
     toDraw[0].first->Draw(toDraw[0].second.c_str());
-    setRange(toDraw[0].first, plot);
+    setRange(toDraw[0].first, plot.x_axis_range, plot.y_axis_range);
 
     float safe_margin = .20;
     if (plot.log_y)
       safe_margin = 8;
 
-    if (plot.y_axis_range.size() != 2) {
+    if (! plot.y_axis_range.valid()) {
       maximum *= 1 + safe_margin;
       setMaximum(toDraw[0].first, maximum);
 
@@ -339,8 +339,8 @@ namespace plotIt {
 
       setMinimum(toDraw[0].first, minimum);
     } else {
-        maximum = plot.y_axis_range[1];
-        minimum = plot.y_axis_range[0];
+        maximum = plot.y_axis_range.end;
+        minimum = plot.y_axis_range.start;
     }
 
     // First, draw MC
@@ -384,8 +384,8 @@ namespace plotIt {
 
     // We have the plot range. Compute the shaded area corresponding to the blinded area, if any
     if (!m_plotIt.getConfiguration().unblind && h_data.get() && plot.blinded_range.valid()) {
-        float x_start = plot.blinded_range.x;
-        float x_end = plot.blinded_range.y;
+        float x_start = plot.blinded_range.start;
+        float x_end = plot.blinded_range.end;
 
         float y_start = gPad->GetUymin();
         float y_end = gPad->GetUymax();
@@ -412,7 +412,7 @@ namespace plotIt {
       h_low_pad_axis->Reset(); // Keep binning
       h_low_pad_axis->SetMaximum(2);
       h_low_pad_axis->SetMinimum(0);
-      setRange(h_low_pad_axis.get(), plot);
+      setRange(h_low_pad_axis.get(), plot.x_axis_range, {});
 
       setDefaultStyle(h_low_pad_axis.get(), 1. / 0.3333);
       h_low_pad_axis->GetYaxis()->SetTickLength(0.04);
@@ -446,7 +446,7 @@ namespace plotIt {
       if (has_syst) {
         h_systematics->SetFillStyle(m_plotIt.getConfiguration().error_fill_style);
         h_systematics->SetFillColor(m_plotIt.getConfiguration().error_fill_color);
-        setRange(h_systematics.get(), plot, true);
+        setRange(h_systematics.get(), plot.x_axis_range, {});
         h_systematics->Draw("E2");
       }
 
@@ -455,8 +455,8 @@ namespace plotIt {
       if (plot.fit_ratio) {
         float xMin, xMax;
         if (plot.ratio_fit_range.valid()) {
-          xMin = plot.ratio_fit_range.x;
-          xMax = plot.ratio_fit_range.y;
+          xMin = plot.ratio_fit_range.start;
+          xMax = plot.ratio_fit_range.end;
         } else {
           xMin = h_low_pad_axis->GetXaxis()->GetBinLowEdge(1);
           xMax = h_low_pad_axis->GetXaxis()->GetBinUpEdge(h_low_pad_axis->GetXaxis()->GetLast());
@@ -521,8 +521,8 @@ namespace plotIt {
     if (plot.fit) {
       float xMin, xMax;
       if (plot.fit_range.valid()) {
-        xMin = plot.fit_range.x;
-        xMax = plot.fit_range.y;
+        xMin = plot.fit_range.start;
+        xMax = plot.fit_range.end;
       } else {
         xMin = mc_stack->GetXaxis()->GetBinLowEdge(1);
         xMax = mc_stack->GetXaxis()->GetBinUpEdge(mc_stack->GetXaxis()->GetLast());
@@ -619,10 +619,10 @@ namespace plotIt {
     size_t first_bin = 1;
     size_t last_bin = h->GetNbinsX();
 
-    if (plot.x_axis_range.size() == 2) {
+    if (plot.x_axis_range.valid()) {
       std::shared_ptr<TH1> copy(dynamic_cast<TH1*>(h->Clone()));
       copy->SetDirectory(nullptr);
-      copy->GetXaxis()->SetRangeUser(plot.x_axis_range[0], plot.x_axis_range[1]);
+      copy->GetXaxis()->SetRangeUser(plot.x_axis_range.start, plot.x_axis_range.end);
 
       // Find first and last bin corresponding to the given range
       first_bin = copy->GetXaxis()->GetFirst();
