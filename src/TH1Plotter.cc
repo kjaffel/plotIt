@@ -410,9 +410,7 @@ namespace plotIt {
       std::shared_ptr<TH1> h_low_pad_axis(static_cast<TH1*>(h_data->Clone()));
       h_low_pad_axis->SetDirectory(nullptr);
       h_low_pad_axis->Reset(); // Keep binning
-      h_low_pad_axis->SetMaximum(2);
-      h_low_pad_axis->SetMinimum(0);
-      setRange(h_low_pad_axis.get(), plot.x_axis_range, {});
+      setRange(h_low_pad_axis.get(), plot.x_axis_range, plot.ratio_y_axis_range);
 
       setDefaultStyle(h_low_pad_axis.get(), 1. / 0.3333);
       h_low_pad_axis->GetYaxis()->SetTickLength(0.04);

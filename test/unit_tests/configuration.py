@@ -35,6 +35,7 @@ def conf_get_plots():
                 'log-y': 'false',
                 'save-extensions': ['pdf'],
                 'blinded-range': [3, 5.2],
+                'ratio-y-axis-range': [0, 2]
                 }
             }
 
