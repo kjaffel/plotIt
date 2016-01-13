@@ -164,4 +164,14 @@ namespace plotIt {
       globfree(&glob_result);
       return ret;
   }
+
+  inline std::string truncate(const std::string& str, size_t max_len) {
+      if (str.length() > max_len - 1) {
+          std::string ret = str;
+          ret.resize(max_len - 1);
+          return ret + u8"…";
+      } else {
+          return str;
+      }
+  }
 }

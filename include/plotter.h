@@ -1,6 +1,9 @@
 #pragma once
 
 #include <plotIt.h>
+#include <summary.h>
+
+#include <boost/optional.hpp>
 
 class TCanvas;
 class TObject;
@@ -15,7 +18,7 @@ namespace plotIt {
         }
 
 
-      virtual bool plot(TCanvas& c, Plot& plot) = 0;
+      virtual boost::optional<Summary> plot(TCanvas& c, Plot& plot) = 0;
       virtual bool supports(TObject& object) = 0;
 
     protected:

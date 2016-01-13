@@ -1,6 +1,7 @@
 #include <TH1Plotter.h>
 
 #include <TCanvas.h>
+#include <TEfficiency.h>
 #include <TF1.h>
 #include <TFitResult.h>
 #include <TLatex.h>
@@ -61,8 +62,10 @@ namespace plotIt {
     return object.InheritsFrom("TH1");
   }
 
-  bool TH1Plotter::plot(TCanvas& c, Plot& plot) {
+  boost::optional<Summary> TH1Plotter::plot(TCanvas& c, Plot& plot) {
     c.cd();
+
+    Summary global_summary;
 
     // Rescale and style histograms
     for (File& file: m_plotIt.getFiles()) {
@@ -77,20 +80,35 @@ namespace plotIt {
           factor *= m_plotIt.getConfiguration().scale * file.scale;
         }
 
-        float n_entries = h->Integral();
-        file.summary.efficiency = n_entries / file.generated_events;
-        file.summary.efficiency_error = sqrt( (file.summary.efficiency * (1 - file.summary.efficiency)) / file.generated_events );
+        SummaryItem summary;
+        summary.name = file.pretty_name;
 
-        file.summary.n_events = n_entries * factor;
-        file.summary.n_events_error = m_plotIt.getConfiguration().luminosity * file.cross_section * file.branching_ratio * file.summary.efficiency_error;
-        if (! m_plotIt.getConfiguration().ignore_scales) {
-          file.summary.n_events_error *= m_plotIt.getConfiguration().scale * file.scale;
-        }
+        double integral_error = 0;
+        double integral = h->IntegralAndError(h->GetXaxis()->GetFirst(), h->GetXaxis()->GetLast(), integral_error);
+
+        summary.events = integral * factor;
+        summary.events_uncertainty = integral_error * factor;
+
+        // FIXME: Probably invalid in case of weights...
+
+        // Bayesian efficiency
+        // Taken from https://root.cern.ch/doc/master/TEfficiency_8cxx_source.html#l02428
+
+        // Use a flat prior (equivalent to Beta(1, 1))
+        float alpha = 1.;
+        float beta = 1.;
+
+        summary.efficiency = TEfficiency::BetaMean(integral + alpha, file.generated_events - integral + beta);
+        summary.efficiency_uncertainty = TEfficiency::Bayesian(file.generated_events, integral, 0.68, alpha, beta, true) - summary.efficiency;
+
+        global_summary.add(file.type, summary);
 
         h->Scale(factor);
       } else {
-        file.summary.n_events = h->Integral();
-        file.summary.n_events_error = 0;
+        SummaryItem summary;
+        summary.name = file.pretty_name;
+        summary.events = h->Integral();
+        global_summary.add(file.type, summary);
       }
 
       h->Rebin(plot.rebin);
@@ -225,8 +243,8 @@ namespace plotIt {
         for (Systematic& syst: file.systematics) {
           // This histogram should contains syst errors
           // in percent
-          float total_syst_error = 0;
           TH1* h = dynamic_cast<TH1*>(syst.object);
+          float total_syst_error = 0;
           for (uint32_t i = 1; i <= (uint32_t) mc_histo_syst_only->GetNbinsX(); i++) {
             float total_error = mc_histo_syst_only->GetBinError(i);
             float syst_error_percent = h->GetBinError(i);
@@ -237,9 +255,13 @@ namespace plotIt {
             mc_histo_syst_only->SetBinError(i, std::sqrt(total_error * total_error + syst_error * syst_error));
           }
 
-          syst.summary.n_events = file.summary.n_events;
-          syst.summary.n_events_error = std::sqrt(total_syst_error);
+          SummaryItem summary;
+          summary.name = fs::path(syst.path).stem().native();
+          summary.events_uncertainty = std::sqrt(total_syst_error);
+
+          global_summary.addSystematics(file.type, summary);
         }
+
       }
 
       // Propagate syst errors to the stat + syst histogram
@@ -265,7 +287,7 @@ namespace plotIt {
 
     if (!toDraw.size()) {
       std::cerr << "Error: nothing to draw." << std::endl;
-      return false;
+      return boost::none;
     };
 
     // Sort object by minimum
@@ -610,7 +632,7 @@ namespace plotIt {
     if (hi_pad.get())
       hi_pad->cd();
 
-    return true;
+    return global_summary;
   }
 
   void TH1Plotter::setHistogramStyle(const File& file) {

@@ -9,7 +9,7 @@ namespace plotIt {
         plotter(plotIt) {
         }
 
-      virtual bool plot(TCanvas& c, Plot& plot);
+      virtual boost::optional<Summary> plot(TCanvas& c, Plot& plot);
       virtual bool supports(TObject& object);
 
     private:

@@ -9,6 +9,8 @@
 #include <defines.h>
 #include <uuid.h>
 
+#include <yaml-cpp/yaml.h>
+
 #include <TObject.h>
 #include <TFile.h>
 #include <TChain.h>
@@ -20,6 +22,21 @@ namespace plotIt {
     SIGNAL,
     DATA
   };
+
+  inline std::string type_to_string(const Type& type) {
+      switch (type) {
+        case MC:
+            return "Simulation";
+
+        case SIGNAL:
+            return "Signal";
+
+        case DATA:
+            return "Data";
+      }
+
+      return "Unknown";
+  }
 
   enum ErrorsType {
       Normal = 0,
@@ -59,25 +76,11 @@ namespace plotIt {
       VERTICAL
   };
 
-  struct Summary {
-    float n_events = 0;
-    float n_events_error = 0;
-
-    float efficiency = 0;
-    float efficiency_error = 0;
-
-    void clear() {
-      n_events = n_events_error = efficiency = efficiency_error = 0;
-    }
-  };
-
   struct Systematic {
     std::string path;
     TObject* object = nullptr;
     std::map<std::string, TObject*> objects;
     std::shared_ptr<TFile> handle;
-
-    Summary summary;
   };
 
   struct LineStyle {
@@ -111,6 +114,7 @@ namespace plotIt {
 
   struct File {
     std::string path;
+    std::string pretty_name;
 
     // For MC and Signal
     float cross_section = 1.;
@@ -130,7 +134,6 @@ namespace plotIt {
     std::vector<Systematic> systematics;
 
     int16_t order = std::numeric_limits<int16_t>::min();
-    Summary summary;
 
     std::shared_ptr<TChain> chain;
     std::shared_ptr<TFile> handle;

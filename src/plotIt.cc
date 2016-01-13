@@ -35,6 +35,8 @@
 #include <pool.h>
 #include <utilities.h>
 
+#include <summary.h>
+
 namespace fs = boost::filesystem;
 using std::setw;
 
@@ -261,6 +263,12 @@ namespace plotIt {
       file.path = (root / path).string();
 
       YAML::Node node = it->second;
+
+      if (node["pretty-name"]) {
+        file.pretty_name = node["pretty-name"].as<std::string>();
+      } else {
+        file.pretty_name = path.stem().native();
+      }
 
       if (node["type"]) {
         std::string type = node["type"].as<std::string>();
@@ -746,79 +754,14 @@ namespace plotIt {
     // Create canvas
     TCanvas c("canvas", "canvas", m_config.width, m_config.height);
 
-    bool success = ::plotIt::plot(m_files[0], c, plot);
+    boost::optional<Summary> summary = ::plotIt::plot(m_files[0], c, plot);
 
-    auto printSummary = [&](Type type) {
-      float sum_n_events = 0;
-      float sum_n_events_error = 0;
-
-      auto truncate = [](const std::string& str, size_t max_len) -> std::string {
-        if (str.length() > max_len - 1) {
-          std::string ret = str;
-          ret.resize(max_len - 1);
-          return ret + u8"…";
-        } else {
-          return str;
-        }
-      };
-
-      printf("%50s%18s ± %11s%4s%10s ± %10s\n", " ", "N", u8"ΔN", " ", u8"ε", u8"Δε");
-      for (File& file: m_files) {
-        if (file.type == type) {
-          fs::path path(file.path);
-          printf("%50s%18.2f ± %10.2f%5s%3.5f%% ± %3.5f%%\n", truncate(path.stem().native(), 50).c_str(), file.summary.n_events, file.summary.n_events_error, " ", file.summary.efficiency * 100, file.summary.efficiency_error * 100);
-
-          sum_n_events += file.summary.n_events;
-          sum_n_events_error += file.summary.n_events_error * file.summary.n_events_error;
-        }
-      }
-
-      if (sum_n_events) {
-        float systematics = 0;
-        if (type == MC && m_config.luminosity_error_percent > 0) {
-          std::cout << "------------------------------------------" << std::endl;
-          std::cout << "Systematic uncertainties" << std::endl;
-          printf("%50s%18s ± %10.2f\n", "Luminosity", " ", sum_n_events * m_config.luminosity_error_percent);
-          systematics = sum_n_events * m_config.luminosity_error_percent;
-        }
-        for (File& file: m_files) {
-          if (file.type == type) {
-            for (Systematic& s: file.systematics) {
-              fs::path path(s.path);
-              printf("%50s%18s ± %10.2f\n", truncate(path.stem().native(), 50).c_str(), " ", s.summary.n_events_error);
-
-              sum_n_events_error += s.summary.n_events_error * s.summary.n_events_error;
-            }
-          }
-        }
-        std::cout << "------------------------------------------" << std::endl;
-        printf("%50s%18.2f ± %10.2f\n", " ", sum_n_events, sqrt(sum_n_events_error + systematics * systematics));
-      }
-    };
-
-    if (! success)
+    if (! summary)
       return false;
 
     if (m_config.verbose) {
-      std::cout << "Summary: " << std::endl;
-
-      if (hasData) {
-       std::cout << "Data" << std::endl;
-       printSummary(DATA);
-       std::cout << std::endl;
-      }
-
-      if (hasMC) {
-       std::cout << "MC: " << std::endl;
-       printSummary(MC);
-       std::cout << std::endl;
-      }
-
-      if (hasSignal) {
-       std::cout << std::endl << "Signal: " << std::endl;
-       printSummary(SIGNAL);
-       std::cout << std::endl;
-      }
+      ConsoleSummaryPrinter printer;
+      printer.print(*summary);
     }
 
     if (plot.log_y)
@@ -924,11 +867,6 @@ namespace plotIt {
     // Reset groups
     for (auto& group: m_legend_groups) {
       group.second.added = false;
-    }
-
-    // Clear summary
-    for (auto& file: m_files) {
-      file.summary.clear();
     }
 
     return true;
