@@ -460,6 +460,9 @@ namespace plotIt {
       if (node["y-axis-range"])
         plot.y_axis_range = node["y-axis-range"].as<Range>();
 
+      if (node["ratio-y-axis-range"])
+        plot.ratio_y_axis_range = node["ratio-y-axis-range"].as<Range>();
+
       if (node["blinded-range"])
         plot.blinded_range = node["blinded-range"].as<Range>();
 

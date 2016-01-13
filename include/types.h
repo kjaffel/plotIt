@@ -219,6 +219,7 @@ namespace plotIt {
     // Axis range
     Range x_axis_range;
     Range y_axis_range;
+    Range ratio_y_axis_range = {0.5, 1.5};
 
     // Blind range
     Range blinded_range;
