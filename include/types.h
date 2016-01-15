@@ -88,6 +88,7 @@ namespace plotIt {
     // Legend
     std::string legend;
     std::string legend_style;
+    int16_t legend_order = 0;
 
     void loadFromYAML(YAML::Node& node, Type type);
   };
