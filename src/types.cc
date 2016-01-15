@@ -63,14 +63,7 @@ namespace plotIt {
     if (node["fill-type"])
       fill_type = node["fill-type"].as<int16_t>();
 
-    if (node["line-color"])
-      line_color = loadColor(node["line-color"]);
-
-    if (node["line-type"])
-      line_type = node["line-type"].as<int16_t>();
-
-    if (node["line-width"])
-      line_width = node["line-width"].as<float>();
+    LineStyle::parse(node);
 
     if (node["marker-color"])
       marker_color = loadColor(node["marker-color"]);
@@ -82,18 +75,39 @@ namespace plotIt {
       marker_size = node["marker-size"].as<float>();
   }
 
+  LineStyle::LineStyle(const YAML::Node& node) {
+    parse(node);
+  }
+
+  void LineStyle::parse(const YAML::Node& node) {
+    if (node["line-color"])
+      line_color = loadColor(node["line-color"]);
+
+    if (node["line-type"])
+      line_type = node["line-type"].as<int16_t>();
+
+    if (node["line-width"])
+      line_width = node["line-width"].as<float>();
+  }
+
   Line::Line(const YAML::Node& node, Orientation orientation) {
       auto NaN = std::numeric_limits<float>::quiet_NaN();
 
+      YAML::Node configuration = node;
+      if (node.Type() == YAML::NodeType::Map) {
+          style = LineStyle(node);
+          configuration = node["value"];
+      }
+
       if (orientation == UNSPECIFIED) {
-          auto points = node.as<std::vector<Point>>();
+          auto points = configuration.as<std::vector<Point>>();
           if (points.size() != 2)
-              throw nullptr; // FIXME
+              throw YAML::ParserException(YAML::Mark::null_mark(), "A line is defined by exactly two points");
 
           start = points[0];
           end = points[1];
       } else {
-          float value = node.as<float>();
+          float value = configuration.as<float>();
           if (orientation == HORIZONTAL) {
               start = {NaN, value};
               end = {NaN, value};

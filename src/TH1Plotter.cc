@@ -425,9 +425,9 @@ namespace plotIt {
       std::shared_ptr<TLine> l(new TLine(line.start.x, line.start.y, line.end.x, line.end.y));
       TemporaryPool::get().add(l);
 
-      l->SetLineColor(m_plotIt.getConfiguration().line_color);
-      l->SetLineWidth(m_plotIt.getConfiguration().line_width);
-      l->SetLineStyle(m_plotIt.getConfiguration().line_style);
+      l->SetLineColor(line.style->line_color);
+      l->SetLineWidth(line.style->line_width);
+      l->SetLineStyle(line.style->line_type);
 
       l->Draw("same");
     }

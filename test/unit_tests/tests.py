@@ -233,7 +233,7 @@ class plotItTestCase(plotItSimpleTestCase):
 
         configuration['configuration']['line-color'] = "#1685f2"
         configuration['configuration']['line-width'] = 3
-        configuration['configuration']['line-style'] = 4
+        configuration['configuration']['line-type'] = 4
 
         configuration['plots']['histo1']['vertical-lines'] = [3, 7]
         configuration['plots']['histo1']['horizontal-lines'] = [80]
@@ -247,4 +247,27 @@ class plotItTestCase(plotItSimpleTestCase):
         self.compare_images(
                 os.path.join(self.output_folder.name, 'histo1.pdf'),
                 get_golden_file('default_configuration_lines.pdf')
+                )
+
+        configuration = get_configuration()
+
+        configuration['configuration']['line-color'] = "#1685f2"
+        configuration['configuration']['line-width'] = 3
+        configuration['configuration']['line-type'] = 4
+
+        configuration['plots']['histo1']['vertical-lines'] = [{
+                'line-color': '#ae4fea',
+                'line-width': 10,
+                'value': 3}, 7]
+        configuration['plots']['histo1']['horizontal-lines'] = [80]
+        configuration['plots']['histo1']['lines'] = [
+                [[3, 20], [8, 90]],
+                [[5.5, float('nan')], [5.5, float('nan')]]
+                ]
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_lines_inline_style.pdf')
                 )
