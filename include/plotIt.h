@@ -68,7 +68,7 @@ namespace plotIt {
       bool loadAllObjects(File& file, const std::vector<Plot>& plots);
       bool loadObject(File& file, const Plot& plot);
 
-      void fillLegend(TLegend& legend, const Plot& plot);
+      void fillLegend(TLegend& legend, const Plot& plot, bool with_uncertainties);
 
       void parseLumiLabel();
 

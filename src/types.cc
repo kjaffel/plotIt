@@ -18,6 +18,9 @@ namespace plotIt {
     if (node["legend-style"])
       legend_style = node["legend-style"].as<std::string>();
 
+    if (node["legend-order"])
+      legend_order = node["legend-order"].as<int16_t>();
+
     if (node["drawing-options"])
       drawing_options = node["drawing-options"].as<std::string>();
     else {

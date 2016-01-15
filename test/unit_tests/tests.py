@@ -118,6 +118,12 @@ def upload_images(image1, image2):
     print ""
 
 class plotItSimpleTestCase(unittest.TestCase):
+    def __init__(self, methodName='runTest'):
+        super(plotItSimpleTestCase, self).__init__(methodName)
+
+        # Switch to True to generate golden images
+        self.__generate_golden_images = False
+
     def run_plotit(self, configuration):
         import subprocess
         import tempfile
@@ -135,6 +141,12 @@ class plotItSimpleTestCase(unittest.TestCase):
         del self.output_folder
 
     def compare_images(self, image1, image2, threshold=0.995):
+        if self.__generate_golden_images:
+            # Just copy image1 to image2
+            shutil.copyfile(image1, image2)
+            print("Golden image %s generated" % image2)
+            return
+
         likelihood = get_images_likelihood(image1, image2)
 
         try:
@@ -173,4 +185,45 @@ class plotItTestCase(plotItSimpleTestCase):
         self.compare_images(
                 os.path.join(self.output_folder.name, 'histo1.pdf'),
                 get_golden_file('default_configuration_ratio.pdf')
+                )
+
+    def test_default_legend_columns(self):
+        configuration = get_configuration()
+
+        configuration['legend']['columns'] = 1
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_1column_legend.pdf')
+                )
+
+        configuration['legend']['columns'] = 2
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_2columns_legend.pdf')
+                )
+
+        configuration['legend']['columns'] = 3
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_3columns_legend.pdf')
+                )
+
+        configuration['legend']['columns'] = 2
+        configuration['files']['MC_sample1.root']['legend-order'] = 1
+        configuration['files']['MC_sample2.root']['legend-order'] = 0
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_2columns_samplesordering_legend.pdf')
                 )
