@@ -4,6 +4,7 @@
 #include <TF1.h>
 #include <TFitResult.h>
 #include <TLatex.h>
+#include <TLine.h>
 #include <TObject.h>
 #include <TPave.h>
 #include <TVirtualFitter.h>
@@ -396,6 +397,39 @@ namespace plotIt {
 
         TemporaryPool::get().add(blinded_area);
         blinded_area->Draw("same");
+    }
+
+    // Draw all the requested lines for this plot
+    auto resolveLine = [&](Line& line) {
+        Range x_range = getXRange(toDraw[0].first);
+
+        float y_range_start = gPad->GetUymin();
+        float y_range_end = gPad->GetUymax();
+
+        if (std::isnan(line.start.x))
+            line.start.x = x_range.start;
+
+        if (std::isnan(line.start.y))
+            line.start.y = y_range_start;
+
+        if (std::isnan(line.end.x))
+            line.end.x = x_range.end;
+
+        if (std::isnan(line.end.y))
+            line.end.y = y_range_end;
+    };
+
+    for (Line& line: plot.lines) {
+      resolveLine(line);
+
+      std::shared_ptr<TLine> l(new TLine(line.start.x, line.start.y, line.end.x, line.end.y));
+      TemporaryPool::get().add(l);
+
+      l->SetLineColor(m_plotIt.getConfiguration().line_color);
+      l->SetLineWidth(m_plotIt.getConfiguration().line_width);
+      l->SetLineStyle(m_plotIt.getConfiguration().line_style);
+
+      l->Draw("same");
     }
 
     // Redraw only axis

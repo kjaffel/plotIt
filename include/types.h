@@ -51,6 +51,12 @@ namespace plotIt {
       return node.as<bool>() ? True : False;
   }
 
+  enum Orientation {
+      UNSPECIFIED,
+      HORIZONTAL,
+      VERTICAL
+  };
+
   struct Summary {
     float n_events = 0;
     float n_events_error = 0;
@@ -200,6 +206,27 @@ namespace plotIt {
     Point position;
   };
 
+  struct Line {
+    Point start;
+    Point end;
+
+    bool operator==(const Line& other) {
+      return ((start == other.start) && (end == other.end));
+    }
+
+    bool valid() const {
+      return start.valid() && end.valid();
+    }
+
+    Line() = default;
+    Line(std::initializer_list<Point> c) {
+      assert(c.size() == 2);
+      start = *c.begin();
+      end = *(c.begin() + 1);
+    }
+    Line(const YAML::Node& node, Orientation);
+  };
+
   struct Plot {
     std::string name;
     std::string output_suffix;
@@ -230,7 +257,6 @@ namespace plotIt {
 
     std::string draw_string;  // Only used in tree mode
     std::string selection_string;  // Only used in tree mode
-
 
     std::vector<std::string> save_extensions = {"pdf"};
 
@@ -269,6 +295,8 @@ namespace plotIt {
     int yields_table_order = 0;
 
     bool is_rescaled = false;
+
+    std::vector<Line> lines;
     
     void print() {
       std::cout << "Plot '" << name << "'" << std::endl;
@@ -320,6 +348,10 @@ namespace plotIt {
     int16_t ratio_fit_line_style = 1;
     int16_t ratio_fit_error_fill_color = 42;
     int16_t ratio_fit_error_fill_style = 1001;
+
+    int16_t line_color = 0;
+    int16_t line_width = 1;
+    int16_t line_style = 1;
 
     std::vector<Label> labels;
 

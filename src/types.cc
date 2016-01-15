@@ -81,4 +81,26 @@ namespace plotIt {
     if (node["marker-size"])
       marker_size = node["marker-size"].as<float>();
   }
+
+  Line::Line(const YAML::Node& node, Orientation orientation) {
+      auto NaN = std::numeric_limits<float>::quiet_NaN();
+
+      if (orientation == UNSPECIFIED) {
+          auto points = node.as<std::vector<Point>>();
+          if (points.size() != 2)
+              throw nullptr; // FIXME
+
+          start = points[0];
+          end = points[1];
+      } else {
+          float value = node.as<float>();
+          if (orientation == HORIZONTAL) {
+              start = {NaN, value};
+              end = {NaN, value};
+          } else {
+              start = {value, NaN};
+              end = {value, NaN};
+          }
+      }
+  }
 }
