@@ -130,6 +130,17 @@ namespace plotIt {
   void setRange(TObject* object, const Range& x_range, const Range& y_range);
 
   template<class T>
+    Range getXRange(T* object) {
+      Range range;
+      range.start = object->GetXaxis()->GetBinLowEdge(object->GetXaxis()->GetFirst());
+      range.end = object->GetXaxis()->GetBinUpEdge(object->GetXaxis()->GetLast());
+
+      return range;
+    }
+
+  Range getXRange(TObject* object);
+
+  template<class T>
   float getPositiveMinimum(T* object) {
     return object->GetMinimum(0);
   }

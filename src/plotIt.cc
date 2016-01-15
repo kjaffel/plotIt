@@ -211,6 +211,15 @@ namespace plotIt {
       if (node["blinded-range-fill-style"])
         m_config.blinded_range_fill_style = node["blinded-range-fill-style"].as<uint16_t>();
 
+      if (node["line-color"])
+        m_config.line_color = loadColor(node["line-color"]);
+
+      if (node["line-width"])
+        m_config.line_width = node["line-style"].as<int16_t>();
+
+      if (node["line-style"])
+        m_config.line_style = node["line-style"].as<int16_t>();
+
       if (node["labels"]) {
         YAML::Node labels = node["labels"];
         m_config.labels = parseLabelsNode(labels);
@@ -525,6 +534,24 @@ namespace plotIt {
 
       if (node["yields-table-order"])
         plot.yields_table_order = node["yields-table-order"].as<int>();
+
+      if (node["vertical-lines"]) {
+        for (const auto& line: node["vertical-lines"]) {
+          plot.lines.push_back(Line(line, VERTICAL));
+        }
+      }
+
+      if (node["horizontal-lines"]) {
+        for (const auto& line: node["horizontal-lines"]) {
+          plot.lines.push_back(Line(line, HORIZONTAL));
+        }
+      }
+
+      if (node["lines"]) {
+        for (const auto& line: node["lines"]) {
+          plot.lines.push_back(Line(line, UNSPECIFIED));
+        }
+      }
       
       // Handle log
       std::vector<bool> logs_x;

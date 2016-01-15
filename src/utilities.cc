@@ -163,6 +163,12 @@ namespace plotIt {
     CAST_AND_CALL(object, setRange, x_range, y_range);
   }
 
+  Range getXRange(TObject* object) {
+    CAST_AND_RETURN(object, getXRange);
+
+    return Range();
+  }
+
   float getPositiveMinimum(TObject* object) {
       if (dynamic_cast<TH1*>(object))
           return getPositiveMinimum(dynamic_cast<TH1*>(object));
