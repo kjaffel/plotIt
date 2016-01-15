@@ -1,7 +1,9 @@
 #pragma once
 
-#include <boost/filesystem.hpp>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/optional.hpp>
+
 #include <iostream>
 
 #include <defines.h>
@@ -78,7 +80,18 @@ namespace plotIt {
     Summary summary;
   };
 
-  struct PlotStyle {
+  struct LineStyle {
+    float line_width = 1;
+    int16_t line_color = 1;
+    int16_t line_type = 1;
+
+    LineStyle() = default;
+    LineStyle(const YAML::Node& node);
+
+    void parse(const YAML::Node& node);
+  };
+
+  struct PlotStyle: public LineStyle {
 
     // Style
     float marker_size;
@@ -86,9 +99,6 @@ namespace plotIt {
     int16_t marker_type;
     int16_t fill_color;
     int16_t fill_type;
-    float line_width;
-    int16_t line_color;
-    int16_t line_type;
     std::string drawing_options;
 
     // Legend
@@ -210,6 +220,8 @@ namespace plotIt {
     Point start;
     Point end;
 
+    boost::optional<LineStyle> style;
+
     bool operator==(const Line& other) {
       return ((start == other.start) && (end == other.end));
     }
@@ -224,6 +236,7 @@ namespace plotIt {
       start = *c.begin();
       end = *(c.begin() + 1);
     }
+
     Line(const YAML::Node& node, Orientation);
   };
 
@@ -349,9 +362,7 @@ namespace plotIt {
     int16_t ratio_fit_error_fill_color = 42;
     int16_t ratio_fit_error_fill_style = 1001;
 
-    int16_t line_color = 0;
-    int16_t line_width = 1;
-    int16_t line_style = 1;
+    LineStyle line_style;
 
     std::vector<Label> labels;
 
