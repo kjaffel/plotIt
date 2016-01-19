@@ -451,7 +451,7 @@ namespace plotIt {
       h_low_pad_axis->GetYaxis()->SetNdivisions(505, true);
       h_low_pad_axis->GetXaxis()->SetTickLength(0.07);
 
-      h_low_pad_axis->Draw("P E X0");
+      h_low_pad_axis->Draw();
 
       std::shared_ptr<TGraphAsymmErrors> ratio = getRatio(h_data.get(), mc_histo_stat_only.get());
       ratio->Draw("P same");
@@ -482,7 +482,7 @@ namespace plotIt {
         h_systematics->Draw("E2");
       }
 
-      h_low_pad_axis->Draw("P E X0 same");
+      h_low_pad_axis->Draw("same");
 
       if (plot.fit_ratio) {
         float xMin, xMax;
@@ -537,7 +537,7 @@ namespace plotIt {
         }
       }
 
-      h_low_pad_axis->Draw("P E X0 same");
+      h_low_pad_axis->Draw("same");
       ratio->Draw("P same");
 
       // Hide top pad label
