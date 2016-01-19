@@ -58,6 +58,7 @@ namespace plotIt {
       void checkOrThrow(YAML::Node& node, const std::string& name, const std::string& file);
       void parseConfigurationFile(const std::string& file);
       void parseIncludes(YAML::Node& node);
+      void parseSystematicsNode(const YAML::Node& node);
 
       // Plot method
       bool plot(Plot& plot);
@@ -78,6 +79,7 @@ namespace plotIt {
 
       std::vector<File> m_files;
       std::vector<Plot> m_plots;
+      std::vector<SystematicPtr> m_systematics;
       std::map<std::string, Group> m_legend_groups;
       std::map<std::string, Group> m_yields_groups;
 
