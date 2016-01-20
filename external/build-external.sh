@@ -2,10 +2,10 @@
 
 # YAML
 
-curl -O https://yaml-cpp.googlecode.com/files/yaml-cpp-0.5.1.tar.gz
-tar xf yaml-cpp-0.5.1.tar.gz
+curl -O -J -L https://github.com/jbeder/yaml-cpp/archive/release-0.5.3.tar.gz
+tar xf yaml-cpp-release-0.5.3.tar.gz
 
-cd yaml-cpp-0.5.1
+cd yaml-cpp-release-0.5.3
 mkdir build
 cd build
 
@@ -15,7 +15,7 @@ make -j4
 make install
 
 cd ../..
-rm yaml-cpp-0.5.1.tar.gz
+rm yaml-cpp-release-0.5.3.tar.gz
 
 # TCLAP
 curl -L "http://downloads.sourceforge.net/project/tclap/{tclap-1.2.1.tar.gz}?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Ftclap%2Ffiles%2F&ts=1431017326&use_mirror=freefr" -o "#1"

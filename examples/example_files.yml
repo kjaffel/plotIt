@@ -1,10 +1,11 @@
 'data.root':
   type: data
   legend: 'Data'
+  pretty-name: 'Data'
 
 'MC_sample1.root':
   type: mc
-  sample-name: "TTJets_TuneCUETP8M1_amcatnloFXFX_25ns_15c5fa1_c106444"
+  pretty-name: 'MC sample 1'
   cross-section: 245.8
   generated-events: 2167
   fill-color: "#D95B43"
@@ -14,6 +15,7 @@
 
 'MC_sample2.root':
   type: mc
+  pretty-name: 'MC sample 2'
   cross-section: 666.3
   generated-events: 2404
   fill-color: '#53777A'

@@ -53,7 +53,7 @@ def conf_get_files():
     f = {
             'data.root': {'type': 'data', 'legend': 'Data'},
             'MC_sample1.root': {'type': 'mc', 'legend': 'MC 1', 'cross-section': 245.8, 'generated-events': 2167, 'fill-color': '#D95B43', 'order': 1, 'group': 'mygroup'},
-            'MC_sample2.root': {'type': 'mc', 'legend': 'MC 2', 'cross-section': 666.3, 'generated-events': 2403, 'fill-color': '#53777A', 'order': 0, 'group': 'mygroup'},
+            'MC_sample2.root': {'type': 'mc', 'legend': 'MC 2', 'cross-section': 666.3, 'generated-events': 2404, 'fill-color': '#53777A', 'order': 0, 'group': 'mygroup'},
             }
 
     return {'files': f}
