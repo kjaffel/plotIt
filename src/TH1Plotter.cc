@@ -754,6 +754,7 @@ namespace plotIt {
     for (size_t i = 0; i < first_bin; i++) {
       underflow += h->GetBinContent(i);
       underflow_sumw2 += (h->GetBinError(i) * h->GetBinError(i));
+      h->SetBinContent(i, 0); // Clear bin content so that Integral() still returns the right value
     }
 
     float overflow = 0;
@@ -761,6 +762,7 @@ namespace plotIt {
     for (size_t i = last_bin + 1; i <= (size_t) h->GetNbinsX() + 1; i++) {
       overflow += h->GetBinContent(i);
       overflow_sumw2 += (h->GetBinError(i) * h->GetBinError(i));
+      h->SetBinContent(i, 0); // Clear bin content so that Integral() still returns the right value
     }
 
     float first_bin_content = h->GetBinContent(first_bin);
