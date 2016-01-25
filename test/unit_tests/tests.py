@@ -271,3 +271,66 @@ class plotItTestCase(plotItSimpleTestCase):
                 os.path.join(self.output_folder.name, 'histo1.pdf'),
                 get_golden_file('default_configuration_lines_inline_style.pdf')
                 )
+
+    def test_systematics(self):
+        configuration = get_configuration()
+
+        configuration['configuration']['luminosity-error'] = 0.4
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_lumi_error_0p4.pdf')
+                )
+
+        configuration = get_configuration()
+
+        configuration['configuration']['luminosity-error'] = 0.
+        configuration['systematics'] = []
+        configuration['systematics'] += [{'syst1': 1.4}]
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_one_syst_0p4.pdf')
+                )
+
+        configuration = get_configuration()
+
+        configuration['configuration']['luminosity-error'] = 0.
+        configuration['systematics'] = []
+        configuration['systematics'] += [{'syst1': 1.2}]
+        configuration['systematics'] += [{'syst2': {'type': 'ln', 'prior': 1.2}}]
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_two_systs_0p28.pdf')
+                )
+
+        configuration = get_configuration()
+
+        configuration['configuration']['luminosity-error'] = 0.
+        configuration['systematics'] = ['alpha', 'beta']
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_two_systs_shape.pdf')
+                )
+
+        configuration = get_configuration()
+
+        configuration['configuration']['luminosity-error'] = 0.
+        configuration['systematics'] = ['i-do-not-exist']
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_syst_not_found.pdf')
+                )

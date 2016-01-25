@@ -6,7 +6,7 @@ configuration:
   extra-label: "Preliminary"
   root: 'files'
   luminosity: 1
-  luminosity-error: 0.026
+  luminosity-error: 0.046
   error-fill-style: 3154
   error-fill-color: "#ee556270"
   ratio-fit-error-fill-style: 1001
@@ -18,8 +18,15 @@ configuration:
 files:
   include: ['example_files.yml']
 
+systematics:
+  - alpha # Shape systematics
+  - beta: {type: shape}  # Shape systematics
+  - gamma: {type: ln, prior: 1.072, pretty-name: "Gamma"}  # Log-normal systematics, +7.2%, -2.97%, exp(+/- 1 * log(prior))
+  - delta: 1.14  # Constant systematics, +- 14%
+
 plots:
   'histo1':
+    for-yields: true
     x-axis: "X axis"
     y-axis: "Y axis"
     y-axis-format: "%1% / %2$.0f GeV"

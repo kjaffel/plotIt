@@ -29,7 +29,7 @@ namespace plotIt {
 
             if ((b1 == 0) || (b2 == 0))
                 continue;
-            
+
             float ratio = b1 / b2;
 
             float b1sq = b1 * b1;
@@ -50,7 +50,7 @@ namespace plotIt {
                     //a->GetBinLowEdge(i) - a->GetBinCenter(i) + a->GetBinWidth(i),
                     //error_low, error_up);
             g->SetPointError(npoint, 0, 0, error_low, error_up);
-            npoint++; 
+            npoint++;
         }
 
         g->Set(npoint);
@@ -80,14 +80,18 @@ namespace plotIt {
           factor *= m_plotIt.getConfiguration().scale * file.scale;
         }
 
+        double integral = h->Integral();
+
+        h->Scale(factor);
+
         SummaryItem summary;
         summary.name = file.pretty_name;
 
-        double integral_error = 0;
-        double integral = h->IntegralAndError(h->GetXaxis()->GetFirst(), h->GetXaxis()->GetLast(), integral_error);
+        double rescaled_integral_error = 0;
+        double rescaled_integral = h->IntegralAndError(h->GetXaxis()->GetFirst(), h->GetXaxis()->GetLast(), rescaled_integral_error);
 
-        summary.events = integral * factor;
-        summary.events_uncertainty = integral_error * factor;
+        summary.events = rescaled_integral;
+        summary.events_uncertainty = rescaled_integral_error;
 
         // FIXME: Probably invalid in case of weights...
 
@@ -103,7 +107,14 @@ namespace plotIt {
 
         global_summary.add(file.type, summary);
 
-        h->Scale(factor);
+        // Update all systematics for this file
+        for (auto& syst: *file.systematics) {
+          syst.update();
+
+          syst.scale(factor);
+          syst.rebin(plot.rebin);
+        }
+
       } else {
         SummaryItem summary;
         summary.name = file.pretty_name;
@@ -116,13 +127,13 @@ namespace plotIt {
       // Add overflow to first and last bin if requested
       if (plot.show_overflow) {
         addOverflow(h, file.type, plot);
-      }
 
-      for (Systematic& s: file.systematics) {
-        TH1* syst = static_cast<TH1*>(s.object);
-        syst->Rebin(plot.rebin);
-        if (plot.show_overflow) {
-          addOverflow(syst, file.type, plot);
+        if (file.type != DATA) {
+            for (auto& syst: *file.systematics) {
+                addOverflow(static_cast<TH1*>(syst.nominal_shape.get()), file.type, plot);
+                addOverflow(static_cast<TH1*>(syst.up_shape.get()), file.type, plot);
+                addOverflow(static_cast<TH1*>(syst.down_shape.get()), file.type, plot);
+            }
         }
       }
     }
@@ -234,34 +245,81 @@ namespace plotIt {
       }
 
       // Check if systematic histogram are attached, and add them to the plot
+      std::map<std::tuple<Type, std::string>, SummaryItem> systematics_summary;
+
+      // Key is systematics name, value is the combined systematics value for each bin
+      std::map<std::string, std::vector<float>> combined_systematics_map;
+
       for (File& file: m_plotIt.getFiles()) {
-        if (file.type != MC || file.systematics.size() == 0)
+        if (file.type != MC || file.systematics->size() == 0)
           continue;
 
-        TH1* nominal = dynamic_cast<TH1*>(file.object);
+        for (auto& syst: *file.systematics) {
 
-        for (Systematic& syst: file.systematics) {
-          // This histogram should contains syst errors
-          // in percent
-          TH1* h = dynamic_cast<TH1*>(syst.object);
-          float total_syst_error = 0;
-          for (uint32_t i = 1; i <= (uint32_t) mc_histo_syst_only->GetNbinsX(); i++) {
-            float total_error = mc_histo_syst_only->GetBinError(i);
-            float syst_error_percent = h->GetBinError(i);
-            float nominal_value = nominal->GetBinContent(i);
-            float syst_error = nominal_value * syst_error_percent;
-            total_syst_error += syst_error * syst_error;
+          std::vector<float>* combined_systematics;
+          auto map_it = combined_systematics_map.find(syst.name());
 
-            mc_histo_syst_only->SetBinError(i, std::sqrt(total_error * total_error + syst_error * syst_error));
+          if (map_it == combined_systematics_map.end()) {
+            combined_systematics = &combined_systematics_map[syst.name()];
+            combined_systematics->resize(mc_histo_syst_only->GetNbinsX(), 0);
+          } else {
+            combined_systematics = &map_it->second;
           }
 
-          SummaryItem summary;
-          summary.name = fs::path(syst.path).stem().native();
-          summary.events_uncertainty = std::sqrt(total_syst_error);
+          TH1* nominal_shape = static_cast<TH1*>(syst.nominal_shape.get());
+          TH1* up_shape = static_cast<TH1*>(syst.up_shape.get());
+          TH1* down_shape = static_cast<TH1*>(syst.down_shape.get());
 
-          global_summary.addSystematics(file.type, summary);
+          if (! nominal_shape || ! up_shape || ! down_shape)
+              continue;
+
+          float total_syst_error = 0;
+          // Systematics in each bin are fully correlated, as they come either from
+          // a global variation, or for a shape variation. The total systematics error
+          // is simply for sum of all errors in each bins
+          //
+          // However, we consider that different systematics in the same bin are totaly
+          // uncorrelated. The total systematics errors is then the quadratic sum.
+          for (uint32_t i = 1; i <= (uint32_t) mc_histo_syst_only->GetNbinsX(); i++) {
+            float syst_error_up = std::abs(up_shape->GetBinContent(i) - nominal_shape->GetBinContent(i));
+            float syst_error_down = std::abs(nominal_shape->GetBinContent(i) - down_shape->GetBinContent(i));
+
+            // FIXME: Add support for asymetric errors
+            float syst_error = std::max(syst_error_up, syst_error_down);
+
+            total_syst_error += syst_error;
+            (*combined_systematics)[i - 1] += syst_error;
+          }
+
+
+          auto key = std::make_tuple(file.type, syst.name());
+          auto it = systematics_summary.find(key);
+
+          if (it == systematics_summary.end()) {
+            SummaryItem summary;
+            summary.name = syst.prettyName();
+            summary.events_uncertainty = total_syst_error;
+
+            systematics_summary.emplace(key, summary);
+          } else {
+            it->second.events_uncertainty += total_syst_error;
+          }
+
         }
 
+      }
+
+      // Combine all systematics in one
+      // Consider that all the systematics are not correlated
+      for (auto& combined_systematics: combined_systematics_map) {
+        for (size_t i = 1; i <= (size_t) mc_histo_syst_only->GetNbinsX(); i++) {
+          float total_error = mc_histo_syst_only->GetBinError(i);
+          mc_histo_syst_only->SetBinError(i, std::sqrt(total_error * total_error + combined_systematics.second[i - 1] * combined_systematics.second[i - 1]));
+        }
+      }
+
+      for (auto& summary: systematics_summary) {
+        global_summary.addSystematics(std::get<0>(summary.first), summary.second);
       }
 
       // Propagate syst errors to the stat + syst histogram
@@ -395,7 +453,7 @@ namespace plotIt {
       h_data->Draw(data_drawing_options.c_str());
       TemporaryPool::get().add(h_data);
     }
-    
+
     // Set x and y axis titles, and default style
     for (auto& obj: toDraw) {
       setDefaultStyle(obj.first, (plot.show_ratio) ? 0.6666 : 1.);
@@ -490,9 +548,11 @@ namespace plotIt {
         if (mc_histo_syst_only->GetBinContent(i) == 0 || mc_histo_syst_only->GetBinError(i) == 0)
           continue;
 
-        float syst = mc_histo_syst_only->GetBinContent(i) / (mc_histo_syst_only->GetBinError(i) + mc_histo_syst_only->GetBinContent(i));
+        // relative error, delta X / X
+        float syst = mc_histo_syst_only->GetBinError(i) / mc_histo_syst_only->GetBinContent(i);
+
         h_systematics->SetBinContent(i, 1);
-        h_systematics->SetBinError(i, 1 - syst);
+        h_systematics->SetBinError(i, syst);
 
         has_syst = true;
       }
@@ -670,6 +730,9 @@ namespace plotIt {
 
   void TH1Plotter::addOverflow(TH1* h, Type type, const Plot& plot) {
 
+    if (!h)
+        return;
+
     size_t first_bin = 1;
     size_t last_bin = h->GetNbinsX();
 
@@ -691,6 +754,7 @@ namespace plotIt {
     for (size_t i = 0; i < first_bin; i++) {
       underflow += h->GetBinContent(i);
       underflow_sumw2 += (h->GetBinError(i) * h->GetBinError(i));
+      h->SetBinContent(i, 0); // Clear bin content so that Integral() still returns the right value
     }
 
     float overflow = 0;
@@ -698,6 +762,7 @@ namespace plotIt {
     for (size_t i = last_bin + 1; i <= (size_t) h->GetNbinsX() + 1; i++) {
       overflow += h->GetBinContent(i);
       overflow_sumw2 += (h->GetBinError(i) * h->GetBinError(i));
+      h->SetBinContent(i, 0); // Clear bin content so that Integral() still returns the right value
     }
 
     float first_bin_content = h->GetBinContent(first_bin);

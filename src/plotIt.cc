@@ -33,9 +33,10 @@
 
 #include <plotters.h>
 #include <pool.h>
+#include <summary.h>
+#include <systematics.h>
 #include <utilities.h>
 
-#include <summary.h>
 
 namespace fs = boost::filesystem;
 using std::setw;
@@ -89,6 +90,39 @@ namespace plotIt {
       if (it->second.Type() == YAML::NodeType::Map)
           parseIncludes(it->second);
     }
+  }
+
+  void plotIt::parseSystematicsNode(const YAML::Node& node) {
+
+      std::string type;
+      std::string name;
+      YAML::Node configuration;
+
+      switch (node.Type()) {
+        case YAML::NodeType::Scalar:
+            name = node.as<std::string>();
+            type = "shape";
+            break;
+
+        case YAML::NodeType::Map: {
+            const auto& it = *node.begin();
+
+            if (it.second.IsScalar())
+                type = "const";
+            else if (it.second["type"])
+                type = it.second["type"].as<std::string>();
+            else
+                type = "shape";
+
+            name = it.first.as<std::string>();
+            configuration = it.second;
+            } break;
+
+        default:
+            throw YAML::ParserException(node.Mark(), "Invalid systematics node. Must be either a string or a map");
+      }
+
+      m_systematics.push_back(SystematicFactory::create(name, type, configuration));
   }
 
   void plotIt::parseConfigurationFile(const std::string& file) {
@@ -162,8 +196,22 @@ namespace plotIt {
         throw YAML::ParserException(YAML::Mark::null_mark(), "'configuration' block is missing luminosity");
       }
 
-      if (node["luminosity-error"])
-        m_config.luminosity_error_percent = node["luminosity-error"].as<float>();
+      if (node["luminosity-error"]) {
+        float value = node["luminosity-error"].as<float>();
+
+        if (value > 0) {
+          // Create a 'luminosity' systematic error
+          YAML::Node syst;
+          syst["type"] = "const";
+          syst["pretty-name"] = "Luminosity";
+          syst["value"] = value + 1;
+
+          YAML::Node syst_node;
+          syst_node["lumi"] = syst;
+
+          f["systematics"].push_back(syst_node);
+        }
+      }
 
       if (node["error-fill-color"])
         m_config.error_fill_color = loadColor(node["error-fill-color"]);
@@ -234,7 +282,7 @@ namespace plotIt {
 
       if (node["errors-type"])
           m_config.errors_type = string_to_errors_type(node["errors-type"].as<std::string>());
-      
+
       if (node["yields-table-stretch"])
         m_config.yields_table_stretch = node["yields-table-stretch"].as<float>();
 
@@ -308,32 +356,6 @@ namespace plotIt {
         file.yields_group = file.path;
       }
 
-      if (node["systematics"]) {
-
-        const auto& addSystematic = [&root, &file](const std::string& systematics) {
-          fs::path path = fs::path(systematics);
-          std::string fullPath = (root / path).string();
-
-          if (boost::filesystem::exists(fullPath)) {
-            Systematic s;
-            s.path = fullPath;
-
-            file.systematics.push_back(s);
-          } else {
-            std::cerr << "Warning: systematics file '" << systematics << "' not found." << std::endl;
-          }
-        };
-
-        const YAML::Node& syst = node["systematics"];
-        if (syst.IsSequence()) {
-          for (const auto& it: syst) {
-            addSystematic(it.as<std::string>());
-          }
-        } else {
-          addSystematic(syst.as<std::string>());
-        }
-      }
-
       file.plot_style = std::make_shared<PlotStyle>();
       file.plot_style->loadFromYAML(node, file.type);
 
@@ -376,6 +398,15 @@ namespace plotIt {
       }
     }
 
+    // List systematics
+    if (f["systematics"]) {
+        YAML::Node systs = f["systematics"];
+
+        for (YAML::const_iterator it = systs.begin(); it != systs.end(); ++it) {
+            parseSystematicsNode(*it);
+        }
+    }
+
     // Retrieve plots configuration
     if (! f["plots"]) {
       throw YAML::ParserException(YAML::Mark::null_mark(), "You must specify at least one plot in your configuration file");
@@ -407,7 +438,7 @@ namespace plotIt {
 
       if (node["no-data"])
         plot.no_data = node["no-data"].as<bool>();
-      
+
       if (node["override"])
         plot.override = node["override"].as<bool>();
 
@@ -558,7 +589,7 @@ namespace plotIt {
         if (! line.style)
           line.style = m_config.line_style;
       }
-      
+
       // Handle log
       std::vector<bool> logs_x;
       std::vector<bool> logs_y;
@@ -874,29 +905,41 @@ namespace plotIt {
 
   bool plotIt::yields(std::vector<Plot>& plots){
     std::cout << "Producing LaTeX yield table.\n";
-    
+
     std::map<std::string, double> data_yields;
-    
+
     std::map< std::string, std::map<std::string, std::pair<double, double> > > mc_yields;
     std::map< std::string, double > mc_total;
     std::map< std::string, double > mc_total_sqerrs;
     std::set<std::string> mc_processes;
-    
+
     std::map< std::string, std::map<std::string, std::pair<double, double> > > signal_yields;
     std::set<std::string> signal_processes;
 
+    std::map<
+        std::tuple<Type, std::string>,
+        double
+    > process_systematics;
+
+    std::map<
+        std::string,
+        std::map<Type, double>
+    > total_systematics_squared;
+
     std::vector< std::pair<int, std::string> > categories;
-    
+
     bool has_data(false);
 
     for(Plot& plot: plots){
       if (!plot.use_for_yields)
         continue;
-      
+
       replace_substr(plot.yields_title, "_", "\\_");
       if( std::find_if(categories.begin(), categories.end(), [&](const std::pair<int, std::string> &x){ return x.second == plot.yields_title; }) != categories.end() )
         return false;
       categories.push_back( std::make_pair(plot.yields_table_order, plot.yields_title) );
+
+      std::map<std::tuple<Type, std::string>, double> plot_total_systematics;
 
       // Open all files, and find histogram in each
       for (File& file: m_files) {
@@ -917,27 +960,52 @@ namespace plotIt {
         std::pair<double, double> yield_sqerror;
         TH1* hist( dynamic_cast<TH1*>(file.object) );
 
-        if( !plot.is_rescaled ){
-          double factor = m_config.luminosity * file.cross_section * file.branching_ratio / file.generated_events;
-          if( !m_config.ignore_scales )
-            factor *= m_config.scale * file.scale;
+        double factor = m_config.luminosity * file.cross_section * file.branching_ratio / file.generated_events;
+        if (!m_config.ignore_scales)
+          factor *= m_config.scale * file.scale;
+
+        if (!plot.is_rescaled)
           hist->Scale(factor);
+
+        for (auto& syst: *file.systematics) {
+          syst.update();
+          syst.scale(factor);
         }
 
         // Retrieve yield and stat. error
         yield_sqerror.first = hist->IntegralAndError(1, hist->GetNbinsX(), yield_sqerror.second);
         yield_sqerror.second = std::pow(yield_sqerror.second,2);
-        // Add lumi. error
-        yield_sqerror.second += std::pow(yield_sqerror.first*m_config.luminosity_error_percent, 2);
-        // Add syst. errors
-        for(auto& syst: file.systematics){
-          TH1* syst_h( dynamic_cast<TH1*>(syst.object) );
-          double tot_sq_syst(0);
-          for(int i = 1; i <= syst_h->GetNbinsX(); ++i)
-            tot_sq_syst += std::pow(hist->GetBinContent(i)*syst_h->GetBinError(i), 2);
-          yield_sqerror.second += tot_sq_syst;
+
+        // Add systematics
+        double file_total_systematics = 0;
+        for (auto& syst: *file.systematics) {
+
+          TH1* nominal_shape = static_cast<TH1*>(syst.nominal_shape.get());
+          TH1* up_shape = static_cast<TH1*>(syst.up_shape.get());
+          TH1* down_shape = static_cast<TH1*>(syst.down_shape.get());
+
+          if (! nominal_shape || ! up_shape || ! down_shape)
+              continue;
+
+          double total_syst_error = 0;
+          for (size_t i = 1; i <= (size_t) nominal_shape->GetNbinsX(); i++) {
+            float syst_error_up = std::abs(up_shape->GetBinContent(i) - nominal_shape->GetBinContent(i));
+            float syst_error_down = std::abs(nominal_shape->GetBinContent(i) - down_shape->GetBinContent(i));
+
+            // FIXME: Add support for asymetric errors
+            float syst_error = std::max(syst_error_up, syst_error_down);
+
+            total_syst_error += syst_error;
+          }
+
+          file_total_systematics += total_syst_error * total_syst_error;
+
+          auto key = std::make_tuple(file.type, syst.name());
+          plot_total_systematics[key] += total_syst_error;
         }
-        
+
+        process_systematics[std::make_tuple(file.type, process_name)] += std::sqrt(file_total_systematics);
+
         if ( file.type == MC ){
           ADD_PAIRS(mc_yields[plot.yields_title][process_name], yield_sqerror);
           mc_total[plot.yields_title] += yield_sqerror.first;
@@ -949,8 +1017,13 @@ namespace plotIt {
           signal_processes.emplace(process_name);
         }
       }
+
+      // Get the total systematics for this category
+      for (auto& syst: plot_total_systematics) {
+        total_systematics_squared[plot.yields_title][std::get<0>(syst.first)] += syst.second * syst.second;
+      }
     }
-    
+
     if( ( !(mc_processes.size()+signal_processes.size()) && !has_data ) || !categories.size() ){
       std::cout << "No processes/data/categories defined\n";
       return false;
@@ -964,11 +1037,11 @@ namespace plotIt {
     std::string tab("    ");
 
     latexString << std::setiosflags(std::ios_base::fixed);
-    
+
     if( m_config.yields_table_align.find("h") != std::string::npos ){
 
       latexString << "\\begin{tabular}{ |l||";
-   
+
       // tabular config.
       for(size_t i = 0; i < signal_processes.size(); ++i)
         latexString << m_config.yields_table_text_align << "|";
@@ -999,29 +1072,33 @@ namespace plotIt {
         latexString << "Data/MC & ";
       latexString.seekp(latexString.tellp() - 2l);
       latexString << "\\\\\n" << tab << tab << "\\hline\n";
-      
+
       // loop over each category
       for(auto& cat_pair: categories){
-        
+
         std::string categ(cat_pair.second);
         latexString << tab << categ << " & ";
         latexString << std::setprecision(m_config.yields_table_num_prec_yields);
 
         for(auto &proc: signal_processes)
-          latexString << "$" << signal_yields[categ][proc].first << " \\pm " << std::sqrt(signal_yields[categ][proc].second) << "$ & ";
-        
+          latexString << "$" << signal_yields[categ][proc].first << " \\pm " << std::sqrt(signal_yields[categ][proc].second + std::pow(process_systematics[std::make_tuple(SIGNAL, proc)], 2)) << "$ & ";
+
         for(auto &proc: mc_processes)
-          latexString << "$" << mc_yields[categ][proc].first << " \\pm " << std::sqrt(mc_yields[categ][proc].second) << "$ & ";
+          latexString << "$" << mc_yields[categ][proc].first << " \\pm " << std::sqrt(mc_yields[categ][proc].second + std::pow(process_systematics[std::make_tuple(MC, proc)], 2)) << "$ & ";
         if( mc_processes.size() )
-          latexString << "$" << mc_total[categ] << " \\pm " << std::sqrt(mc_total_sqerrs[categ]) << "$ & ";
-        
+          latexString << "$" << mc_total[categ] << " \\pm " << std::sqrt(mc_total_sqerrs[categ] + total_systematics_squared[categ][MC]) << "$ & ";
+
         if( has_data )
           latexString << "$" << std::setprecision(0) << data_yields[categ] << "$ & ";
-        
+
         if( has_data && mc_processes.size() ){
           double ratio = data_yields[categ] / mc_total[categ];
-          double err = ratio * std::sqrt(1/data_yields[categ] + mc_total_sqerrs[categ]/std::pow(mc_total[categ], 2));
-          latexString << std::setprecision(m_config.yields_table_num_prec_ratio) << "$" << ratio << " \\pm " << err << "$ & ";
+          double error_data = 0;
+          double error_mc = std::sqrt(mc_total_sqerrs[categ] + total_systematics_squared[categ][MC]);
+
+          double error = ratio * std::sqrt(std::pow(error_data / data_yields[categ], 2) +  std::pow(error_mc / mc_total[categ], 2));
+
+          latexString << std::setprecision(m_config.yields_table_num_prec_ratio) << "$" << ratio << " \\pm " << error << "$ & ";
         }
 
         latexString.seekp(latexString.tellp() - 2l);
@@ -1063,6 +1140,9 @@ namespace plotIt {
     std::cout << "Loading all plots..." << std::endl;
     for (File& file: m_files) {
       loadAllObjects(file, plots);
+
+      file.handle.reset();
+      file.friend_handles.clear();
     }
     std::cout << "Done." << std::endl;
 
@@ -1107,11 +1187,7 @@ namespace plotIt {
     if (! file.handle.get())
       return false;
 
-    std::vector<std::shared_ptr<TFile>> systematic_files;
-    for (Systematic& syst: file.systematics) {
-      syst.handle.reset(TFile::Open(syst.path.c_str()));
-      syst.objects.clear();
-    }
+    file.systematics_cache.clear();
 
     for (const auto& plot: plots) {
       TObject* obj = file.handle->Get(plot.name.c_str());
@@ -1122,16 +1198,9 @@ namespace plotIt {
 
         file.objects.emplace(plot.uid, cloned_obj.get());
 
-        // Load systematics histograms
-        for (Systematic& syst: file.systematics) {
-
-          syst.object = nullptr;
-
-          obj = syst.handle->Get(plot.name.c_str());
-          if (obj) {
-            std::shared_ptr<TObject> cloned_obj(obj->Clone());
-            TemporaryPool::get().addRuntime(cloned_obj);
-            syst.objects.emplace(plot.uid, cloned_obj.get());
+        if (file.type != DATA) {
+          for (auto& syst: m_systematics) {
+              file.systematics_cache[plot.uid].push_back(syst->newSet(cloned_obj.get(), file, plot));
           }
         }
 
@@ -1158,9 +1227,8 @@ namespace plotIt {
     }
 
     file.object = it->second;
-    for (Systematic& syst: file.systematics) {
-      syst.object = syst.objects[plot.uid];
-    }
+
+    file.systematics = & file.systematics_cache[plot.uid];
 
     return true;
   }
@@ -1282,15 +1350,23 @@ namespace plotIt {
         if (! obj->InheritsFrom(plot.inherits_from.c_str()))
           continue;
 
+        // Reject systematic variation plots
+        std::string object_name = obj->GetName();
+        if (object_name.find("__") != std::string::npos) {
+            // TODO: Maybe we should be a bit less strict and check that the
+            // systematics specified is included in the configuration file?
+            continue;
+        }
+
         // Check name
-        if (fnmatch(plot_name.c_str(), obj->GetName(), FNM_CASEFOLD) == 0) {
+        if (fnmatch(plot_name.c_str(), object_name.c_str(), FNM_CASEFOLD) == 0) {
 
           // Check if this name is excluded
-          if ((plot.exclude.length() > 0) && (fnmatch(plot.exclude.c_str(), obj->GetName(), FNM_CASEFOLD) == 0)) {
+          if ((plot.exclude.length() > 0) && (fnmatch(plot.exclude.c_str(), object_name.c_str(), FNM_CASEFOLD) == 0)) {
             continue;
           }
 
-          std::string expanded_plot_name = root_name + obj->GetName();
+          std::string expanded_plot_name = root_name + object_name;
 
           // The same object can be stored multiple time with a different key
           // The iterator returns first the object with the highest key, which is the most recent object

@@ -7,7 +7,7 @@ def conf_get_configuration():
             'extra-label': "Preliminary",
             'root': 'files',
             'luminosity': 1,
-            'luminosity-error': 0.026,
+            'luminosity-error': 0.2,
             'error-fill-style': 3154,
             'error-fill-color': "#ee556270",
             'ratio-fit-error-fill-style': 1001,
@@ -35,7 +35,6 @@ def conf_get_plots():
                 'log-y': 'false',
                 'save-extensions': ['pdf'],
                 'blinded-range': [3, 5.2],
-                'ratio-y-axis-range': [0, 2]
                 }
             }
 

@@ -8,6 +8,7 @@
 
 #include <defines.h>
 #include <uuid.h>
+#include <systematics.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -76,13 +77,6 @@ namespace plotIt {
       VERTICAL
   };
 
-  struct Systematic {
-    std::string path;
-    TObject* object = nullptr;
-    std::map<std::string, TObject*> objects;
-    std::shared_ptr<TFile> handle;
-  };
-
   struct LineStyle {
     float line_width = 1;
     int16_t line_color = 1;
@@ -131,12 +125,15 @@ namespace plotIt {
     TObject* object = nullptr;
     std::map<std::string, TObject*> objects;
 
-    std::vector<Systematic> systematics;
+    std::vector<SystematicSet>* systematics;
+    std::map<std::string, std::vector<SystematicSet>> systematics_cache;
 
     int16_t order = std::numeric_limits<int16_t>::min();
 
     std::shared_ptr<TChain> chain;
+
     std::shared_ptr<TFile> handle;
+    std::map<std::string, std::shared_ptr<TFile>> friend_handles;
   };
 
   struct Group {
