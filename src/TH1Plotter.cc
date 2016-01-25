@@ -471,7 +471,31 @@ namespace plotIt {
         float y_start = gPad->GetUymin();
         float y_end = gPad->GetUymax();
 
-        std::shared_ptr<TPave> blinded_area(new TPave(x_start, y_start, x_end, y_end, 0, "NB"));
+        std::string options = "NB";
+
+        if (plot.log_y) {
+            options = options + " NDC";
+
+            float lm = gPad->GetLeftMargin();
+            float rm = 1. - gPad->GetRightMargin();
+            float tm = 1. - gPad->GetTopMargin();
+            float bm = gPad->GetBottomMargin();
+
+            if (plot.log_x) {
+                Range x_range = getXRange(toDraw[0].first);
+
+                x_start = (rm - lm) * ((std::log(x_start) - std::log(x_range.start)) / (std::log(x_range.end) - std::log(x_range.start))) + lm;
+                x_end = (rm - lm) * ((std::log(x_end) - std::log(x_range.start)) / (std::log(x_range.end) - std::log(x_range.start))) + lm;
+            } else {
+                x_start = (rm - lm) * ((x_start - gPad->GetUxmin()) / (gPad->GetUxmax() - gPad->GetUxmin())) + lm;
+                x_end = (rm - lm) * ((x_end - gPad->GetUxmin()) / (gPad->GetUxmax() - gPad->GetUxmin())) + lm;
+            }
+
+            y_start = bm;
+            y_end = tm;
+        }
+
+        std::shared_ptr<TPave> blinded_area(new TPave(x_start, y_start, x_end, y_end, 0, options.c_str()));
         blinded_area->SetFillStyle(m_plotIt.getConfiguration().blinded_range_fill_style);
         blinded_area->SetFillColor(m_plotIt.getConfiguration().blinded_range_fill_color);
 

@@ -334,3 +334,26 @@ class plotItTestCase(plotItSimpleTestCase):
                 os.path.join(self.output_folder.name, 'histo1.pdf'),
                 get_golden_file('default_configuration_syst_not_found.pdf')
                 )
+
+    def test_blinded(self):
+        configuration = get_configuration()
+        configuration['plots']['histo1']['blinded-range'] = [3, 5.2]
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_blinded_range.pdf')
+                )
+
+        configuration = get_configuration()
+
+        configuration['plots']['histo1']['blinded-range'] = [3, 5.2]
+        configuration['plots']['histo1']['log-y'] = True
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1_logy.pdf'),
+                get_golden_file('default_configuration_blinded_range_logy.pdf')
+                )
