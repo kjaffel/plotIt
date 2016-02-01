@@ -23,6 +23,7 @@ systematics:
   - beta: {type: shape}  # Shape systematics
   - gamma: {type: ln, prior: 1.072, pretty-name: "Gamma"}  # Log-normal systematics, +7.2%, -2.97%, exp(+/- 1 * log(prior))
   - delta: 1.14  # Constant systematics, +- 14%
+  - epsilon: {type: const, value: 1.08, on: 'sample1'}
 
 plots:
   'histo1':
