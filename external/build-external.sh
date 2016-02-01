@@ -5,6 +5,8 @@
 curl -O -J -L https://github.com/jbeder/yaml-cpp/archive/release-0.5.3.tar.gz
 tar xf yaml-cpp-release-0.5.3.tar.gz
 
+patch -p0 < yaml-cpp-cmake-fix.patch
+
 cd yaml-cpp-release-0.5.3
 mkdir build
 cd build

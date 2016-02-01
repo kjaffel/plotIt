@@ -1,0 +1,11 @@
+--- yaml-cpp-release-0.5.3/CMakeLists.txt.orig	2016-01-27 10:40:22.850198491 +0100
++++ yaml-cpp-release-0.5.3/CMakeLists.txt	2016-01-27 10:38:59.768508189 +0100
+@@ -308,7 +308,7 @@
+ export(
+     TARGETS yaml-cpp
+     FILE "${PROJECT_BINARY_DIR}/yaml-cpp-targets.cmake")
+-export(PACKAGE yaml-cpp)
++#export(PACKAGE yaml-cpp)
+ set(EXPORT_TARGETS yaml-cpp CACHE INTERNAL "export targets")
+ 
+ set(CONFIG_INCLUDE_DIRS "${YAML_CPP_SOURCE_DIR}/include")
