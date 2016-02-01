@@ -72,6 +72,9 @@ namespace plotIt {
             std::cout << format("%|1$50|    ---------------------") % " " << std::endl;
             for (const auto& n: systematics) {
                 std::cout << Color::FG_YELLOW << format("%|50|") % truncate(n.name, 50) << Color::RESET << "    " << format("           ± %|8.2f|") % n.events_uncertainty;
+                if (type != DATA) {
+                    std::cout << "    " << format("%|8.2f| %%") % ((n.events_uncertainty / nominal_events) * 100);
+                }
                 std::cout << std::endl;
 
                 nominal_events_uncertainty += n.events_uncertainty * n.events_uncertainty;
