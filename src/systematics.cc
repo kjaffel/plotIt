@@ -204,12 +204,18 @@ namespace plotIt {
 
         if (result) {
             result->name = name;
+            result->pretty_name = name;
 
-            if (node.IsMap() && node["pretty-name"]) {
-                result->pretty_name = node["pretty-name"].as<std::string>();
-            } else {
-                result->pretty_name = name;
+            std::string on = ".*";
+            if (node.IsMap()) {
+                if (node["pretty-name"])
+                    result->pretty_name = node["pretty-name"].as<std::string>();
+
+                if (node["on"])
+                    on = node["on"].as<std::string>();
             }
+
+            result->on = std::regex(on, std::regex_constants::icase);
 
             return result;
         }

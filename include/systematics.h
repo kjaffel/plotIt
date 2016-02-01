@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include <regex>
 
 namespace YAML {
     class Node;
@@ -55,6 +56,7 @@ namespace plotIt {
 
         std::string name;
         std::string pretty_name;
+        std::regex on;
 
         /**
          * Apply the systematic on the given set

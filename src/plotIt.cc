@@ -1200,7 +1200,8 @@ namespace plotIt {
 
         if (file.type != DATA) {
           for (auto& syst: m_systematics) {
-              file.systematics_cache[plot.uid].push_back(syst->newSet(cloned_obj.get(), file, plot));
+              if (std::regex_search(file.path, syst->on))
+                  file.systematics_cache[plot.uid].push_back(syst->newSet(cloned_obj.get(), file, plot));
           }
         }
 
