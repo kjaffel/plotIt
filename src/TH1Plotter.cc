@@ -251,7 +251,7 @@ namespace plotIt {
       std::map<std::string, std::vector<float>> combined_systematics_map;
 
       for (File& file: m_plotIt.getFiles()) {
-        if (file.type != MC || file.systematics->size() == 0)
+        if (file.type == DATA || file.systematics->size() == 0)
           continue;
 
         for (auto& syst: *file.systematics) {
@@ -288,7 +288,10 @@ namespace plotIt {
             float syst_error = std::max(syst_error_up, syst_error_down);
 
             total_syst_error += syst_error;
-            (*combined_systematics)[i - 1] += syst_error;
+
+            // Only propagate uncertainties for MC, not signal
+            if (file.type == MC)
+                (*combined_systematics)[i - 1] += syst_error;
           }
 
 
