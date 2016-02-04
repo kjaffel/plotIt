@@ -396,6 +396,17 @@ namespace plotIt {
       }
     }
 
+    // Take into account systematics for maximum
+    if (mc_histo_syst_only) {
+      float maximum_with_errors = 0;
+      for (size_t b = 1; b <= (size_t) mc_histo_stat_syst->GetNbinsX(); b++) {
+        float local_maximum = mc_histo_stat_syst->GetBinContent(b) + mc_histo_stat_syst->GetBinErrorUp(b);
+        maximum_with_errors = std::max(maximum_with_errors, local_maximum);
+      }
+
+      maximum = std::max(maximum, maximum_with_errors);
+    }
+
     toDraw[0].first->Draw(toDraw[0].second.c_str());
     setRange(toDraw[0].first, plot.x_axis_range, plot.y_axis_range);
 
