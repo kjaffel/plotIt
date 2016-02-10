@@ -215,7 +215,7 @@ namespace plotIt {
                     on = node["on"].as<std::string>();
             }
 
-            result->on = std::regex(on, std::regex_constants::icase);
+            result->on = std::regex(on);
 
             return result;
         }
