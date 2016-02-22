@@ -54,7 +54,7 @@ static Dummy foo;
 
 namespace plotIt {
 
-  plotIt::plotIt(const fs::path& outputPath, const std::string& configFile):
+  plotIt::plotIt(const fs::path& outputPath):
     m_outputPath(outputPath) {
 
       createPlotters(*this);
@@ -63,8 +63,6 @@ namespace plotIt {
       m_style.reset(createStyle());
 
       TH1::AddDirectory(false);
-
-      parseConfigurationFile(configFile);
     }
 
   // Replace the "include" fields by the content they point to
@@ -127,6 +125,10 @@ namespace plotIt {
 
   void plotIt::parseConfigurationFile(const std::string& file) {
     YAML::Node f = YAML::LoadFile(file);
+
+    if (m_config.verbose) {
+        std::cout << "Parsing configuration file ...";
+    }
 
     parseIncludes(f);
 
@@ -635,6 +637,10 @@ namespace plotIt {
     }
 
     parseLumiLabel();
+
+    if (m_config.verbose) {
+        std::cout << " done." << std::endl;
+    }
   }
 
   void plotIt::parseLumiLabel() {
@@ -1137,14 +1143,18 @@ namespace plotIt {
       }
     }
 
-    std::cout << "Loading all plots..." << std::endl;
+    if (m_config.verbose)
+        std::cout << "Loading all plots..." << std::endl;
+
     for (File& file: m_files) {
       loadAllObjects(file, plots);
 
       file.handle.reset();
       file.friend_handles.clear();
     }
-    std::cout << "Done." << std::endl;
+
+    if (m_config.verbose)
+        std::cout << "done." << std::endl;
 
     if(m_config.do_plots){
       for (Plot& plot: plots) {
@@ -1278,6 +1288,32 @@ namespace plotIt {
     return labels;
   }
 
+  void get_directory_content(TDirectory* root, const std::string& prefix, std::vector<std::string>& content) {
+      TIter it(root->GetListOfKeys());
+      TKey* key = nullptr;
+
+      while ((key = static_cast<TKey*>(it()))) {
+          std::string name = key->GetName();
+          std::string cl = key->GetClassName();
+
+          if (cl.find("TDirectory") != std::string::npos) {
+              std::string new_prefix = prefix;
+              if (!prefix.empty())
+                  new_prefix += "/";
+              new_prefix += name;
+              get_directory_content(static_cast<TDirectory*>(key->ReadObj()), new_prefix, content);
+          } else if (cl.find("TH") != std::string::npos) {
+              if (name.find("__") != std::string::npos) {
+                  // TODO: Maybe we should be a bit less strict and check that the
+                  // systematics specified is included in the configuration file?
+                  continue;
+              }
+
+              content.push_back(prefix + "/" + name);
+          }
+      }
+  }
+
   /**
    * Open 'file', and expand all plots
    */
@@ -1285,107 +1321,62 @@ namespace plotIt {
     file.object = nullptr;
     plots.clear();
 
+    // Optimization. Look if any of the plots have a glob pattern (either *, ? or [)
+    // If not, do not iterate of the file to match pattern, it's useless
+    std::vector<Plot> glob_plots;
+    for (Plot& plot: m_plots) {
+        if ((plot.name.find("*") != std::string::npos) || (plot.name.find("?") != std::string::npos) || (plot.name.find("[") != std::string::npos)) {
+            glob_plots.push_back(plot);
+        } else {
+            plots.push_back(plot.Clone(plot.name));
+        }
+    }
+
+    if (glob_plots.empty()) {
+        return true;
+    }
+
     std::shared_ptr<TFile> input(TFile::Open(file.path.c_str()));
     if (! input.get())
       return false;
 
+    // Create file structure, flattening any directory
     TIter root_keys(input->GetListOfKeys());
 
-    for (Plot& plot: m_plots) {
-      TKey* key;
-      TObject* obj;
-      bool match = false;
+    std::vector<std::string> file_content;
+    get_directory_content(input.get(), "", file_content);
 
-      std::vector<std::string> tokens;
-      boost::split(tokens, plot.name, boost::is_any_of("/"));
+    for (Plot& plot: glob_plots) {
+        bool match = false;
+        std::vector<std::string> matched;
 
-      bool in_directory = tokens.size() != 1;
-      std::string plot_name = tokens.back();
-      std::string root_name;
+        for (const auto& content: file_content) {
 
-      root_keys.Reset();
+            // Check name
+            if (fnmatch(plot.name.c_str(), content.c_str(), FNM_CASEFOLD) == 0) {
 
-      TIter it = root_keys;
+                // Check if this name is excluded
+                if ((plot.exclude.length() > 0) && (fnmatch(plot.exclude.c_str(), content.c_str(), FNM_CASEFOLD) == 0)) {
+                    continue;
+                }
 
-      if (in_directory) {
-          auto find_folder = [&](const std::string& name, TDirectory* root) -> TDirectory* {
-              TIter it(root->GetListOfKeys());
-              while ((key = static_cast<TKey*>(it()))) {
-                  TObject* obj = key->ReadObj();
-                  if (!obj->InheritsFrom("TDirectory"))
-                      continue;
+                // The same object can be stored multiple time with a different key
+                // The iterator returns first the object with the highest key, which is the most recent object
+                // Check if we already have a plot with the same exact name
+                if (std::find_if(matched.begin(), matched.end(), [&content](const std::string& p) { return p == content; }) != matched.end()) {
+                    continue;
+                }
 
-                  if (fnmatch(name.c_str(), obj->GetName(), FNM_CASEFOLD) == 0) {
-                      return dynamic_cast<TDirectory*>(obj);
-                  }
-              }
-
-              return nullptr;
-          };
-
-          std::string not_found;
-          TDirectory* root = input.get();
-          for (size_t i = 0; i < tokens.size() - 1; i++) {
-              std::string folder = tokens[i];
-              root = find_folder(folder, root);
-
-              if (! root) {
-                  not_found = folder;
-                  break;
-              }
-
-              root_name += std::string(root->GetName()) + "/";
-          }
-
-          if (! root) {
-              std::cout << "Warning: The folder '" << not_found << "' was not found in file '" << file.path << "'" << std::endl;
-              continue;
-          }
-
-          it = TIter(root->GetListOfKeys());
-      }
-
-      std::vector<std::string> matched;
-      while ((key = static_cast<TKey*>(it()))) {
-        obj = key->ReadObj();
-        if (! obj->InheritsFrom(plot.inherits_from.c_str()))
-          continue;
-
-        // Reject systematic variation plots
-        std::string object_name = obj->GetName();
-        if (object_name.find("__") != std::string::npos) {
-            // TODO: Maybe we should be a bit less strict and check that the
-            // systematics specified is included in the configuration file?
-            continue;
+                // Got it!
+                match = true;
+                matched.push_back(content);
+                plots.push_back(plot.Clone(content));
+            }
         }
 
-        // Check name
-        if (fnmatch(plot_name.c_str(), object_name.c_str(), FNM_CASEFOLD) == 0) {
-
-          // Check if this name is excluded
-          if ((plot.exclude.length() > 0) && (fnmatch(plot.exclude.c_str(), object_name.c_str(), FNM_CASEFOLD) == 0)) {
-            continue;
-          }
-
-          std::string expanded_plot_name = root_name + object_name;
-
-          // The same object can be stored multiple time with a different key
-          // The iterator returns first the object with the highest key, which is the most recent object
-          // Check if we already have a plot with the same exact name
-          if (std::find_if(matched.begin(), matched.end(), [&expanded_plot_name](const std::string& p) { return p == expanded_plot_name; }) != matched.end()) {
-            continue;
-          }
-
-          // Got it!
-          match = true;
-          matched.push_back(expanded_plot_name);
-          plots.push_back(plot.Clone(expanded_plot_name));
+        if (! match) {
+            std::cout << "Warning: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' does not match something in file '" << file.path << "'" << std::endl;
         }
-      }
-
-      if (! match) {
-        std::cout << "Warning: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' does not match something in file '" << file.path << "'" << std::endl;
-      }
     }
 
     if (!plots.size()) {
@@ -1441,13 +1432,14 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    plotIt::plotIt p(outputPath, configFileArg.getValue());
+    plotIt::plotIt p(outputPath);
     p.getConfigurationForEditing().ignore_scales = ignoreScaleArg.getValue();
     p.getConfigurationForEditing().verbose = verboseArg.getValue();
     p.getConfigurationForEditing().do_plots = !plotsArg.getValue();
     p.getConfigurationForEditing().do_yields = yieldsArg.getValue();
     p.getConfigurationForEditing().unblind = unblindArg.getValue();
 
+    p.parseConfigurationFile(configFileArg.getValue());
     p.plotAll();
 
   } catch (TCLAP::ArgException &e) {

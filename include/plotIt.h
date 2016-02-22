@@ -35,7 +35,8 @@ namespace plotIt {
 
   class plotIt {
     public:
-      plotIt(const fs::path& outputPath, const std::string& configFile);
+      plotIt(const fs::path& outputPath);
+      void parseConfigurationFile(const std::string& file);
       void plotAll();
 
       std::vector<File>& getFiles() {
@@ -56,7 +57,6 @@ namespace plotIt {
 
     private:
       void checkOrThrow(YAML::Node& node, const std::string& name, const std::string& file);
-      void parseConfigurationFile(const std::string& file);
       void parseIncludes(YAML::Node& node);
       void parseSystematicsNode(const YAML::Node& node);
 
