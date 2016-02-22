@@ -62,8 +62,16 @@ namespace plotIt {
     SystematicSet Systematic::newSet(TObject* nominal, File& file, const Plot& plot) {
         SystematicSet s = SystematicSet(*this);
         s.true_nominal_shape.reset(nominal->Clone());
+        s.true_up_shape.reset(nominal->Clone());
+        s.true_down_shape.reset(nominal->Clone());
 
         return s;
+    }
+
+    void Systematic::apply(SystematicSet& systs) {
+        systs.nominal_shape.reset(systs.true_nominal_shape->Clone());
+        systs.up_shape.reset(systs.true_up_shape->Clone());
+        systs.down_shape.reset(systs.true_down_shape->Clone());
     }
 
     ConstantSystematic::ConstantSystematic(const YAML::Node& node) {
@@ -76,9 +84,7 @@ namespace plotIt {
     }
 
     void ConstantSystematic::apply(SystematicSet& systs) {
-        systs.nominal_shape.reset(systs.true_nominal_shape->Clone());
-        systs.up_shape.reset(systs.true_nominal_shape->Clone());
-        systs.down_shape.reset(systs.true_nominal_shape->Clone());
+        Systematic::apply(systs);
 
         TH1* up = static_cast<TH1*>(systs.up_shape.get());
         TH1* down = static_cast<TH1*>(systs.down_shape.get());
@@ -115,9 +121,7 @@ namespace plotIt {
     }
 
     void LogNormalSystematic::apply(SystematicSet& systs) {
-        systs.nominal_shape.reset(systs.true_nominal_shape->Clone());
-        systs.up_shape.reset(systs.true_nominal_shape->Clone());
-        systs.down_shape.reset(systs.true_nominal_shape->Clone());
+        Systematic::apply(systs);
 
         TH1* up = static_cast<TH1*>(systs.up_shape.get());
         TH1* down = static_cast<TH1*>(systs.down_shape.get());
@@ -145,10 +149,8 @@ namespace plotIt {
         //   - we look for two objects named <nominal>__<systematic>[up|down] in the same file
         //   - we look for two objects named <nominal> in the file <nominal>__<systematic>[up|down].root
 
-        result.nominal_shape.reset(nominal->Clone());
-
         std::array<Variation, 2> variations = {UP, DOWN};
-        std::map<Variation, std::shared_ptr<TObject>*> links = {{UP, &result.up_shape}, {DOWN, &result.down_shape}};
+        std::map<Variation, std::shared_ptr<TObject>*> links = {{UP, &result.true_up_shape}, {DOWN, &result.true_down_shape}};
 
         auto formatSystematicsName = [this](Variation variation) {
             static std::map<Variation, std::string> names = {{UP, "up"}, {DOWN, "down"}};

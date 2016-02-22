@@ -919,7 +919,7 @@ namespace plotIt {
     std::map<
         std::tuple<Type, std::string>,
         double
-    > process_systematics;
+    > process_systematics_squared;
 
     std::map<
         std::string,
@@ -974,7 +974,7 @@ namespace plotIt {
 
         // Retrieve yield and stat. error
         yield_sqerror.first = hist->IntegralAndError(1, hist->GetNbinsX(), yield_sqerror.second);
-        yield_sqerror.second = std::pow(yield_sqerror.second,2);
+        yield_sqerror.second = std::pow(yield_sqerror.second, 2);
 
         // Add systematics
         double file_total_systematics = 0;
@@ -1004,7 +1004,7 @@ namespace plotIt {
           plot_total_systematics[key] += total_syst_error;
         }
 
-        process_systematics[std::make_tuple(file.type, process_name)] += std::sqrt(file_total_systematics);
+        process_systematics_squared[std::make_tuple(file.type, process_name)] += file_total_systematics;
 
         if ( file.type == MC ){
           ADD_PAIRS(mc_yields[plot.yields_title][process_name], yield_sqerror);
@@ -1081,10 +1081,10 @@ namespace plotIt {
         latexString << std::setprecision(m_config.yields_table_num_prec_yields);
 
         for(auto &proc: signal_processes)
-          latexString << "$" << signal_yields[categ][proc].first << " \\pm " << std::sqrt(signal_yields[categ][proc].second + std::pow(process_systematics[std::make_tuple(SIGNAL, proc)], 2)) << "$ & ";
+          latexString << "$" << signal_yields[categ][proc].first << " \\pm " << std::sqrt(signal_yields[categ][proc].second + process_systematics_squared[std::make_tuple(SIGNAL, proc)]) << "$ & ";
 
         for(auto &proc: mc_processes)
-          latexString << "$" << mc_yields[categ][proc].first << " \\pm " << std::sqrt(mc_yields[categ][proc].second + std::pow(process_systematics[std::make_tuple(MC, proc)], 2)) << "$ & ";
+          latexString << "$" << mc_yields[categ][proc].first << " \\pm " << std::sqrt(mc_yields[categ][proc].second + process_systematics_squared[std::make_tuple(MC, proc)]) << "$ & ";
         if( mc_processes.size() )
           latexString << "$" << mc_total[categ] << " \\pm " << std::sqrt(mc_total_sqerrs[categ] + total_systematics_squared[categ][MC]) << "$ & ";
 

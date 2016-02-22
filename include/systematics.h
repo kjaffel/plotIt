@@ -25,6 +25,8 @@ namespace plotIt {
 
     struct SystematicSet {
         std::shared_ptr<TObject> true_nominal_shape;
+        std::shared_ptr<TObject> true_up_shape;
+        std::shared_ptr<TObject> true_down_shape;
 
         std::shared_ptr<TObject> nominal_shape;
         std::shared_ptr<TObject> up_shape;
@@ -61,7 +63,7 @@ namespace plotIt {
         /**
          * Apply the systematic on the given set
          **/
-        virtual void apply(SystematicSet&) {};
+        virtual void apply(SystematicSet&);
 
         /**
          * Load from the file the necessary objects. Default implementation only
