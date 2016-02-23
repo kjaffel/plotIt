@@ -304,6 +304,7 @@ namespace plotIt {
     // Retrieve files/processes configuration
     YAML::Node files = f["files"];
 
+    size_t process_id = 0;
     for (YAML::const_iterator it = files.begin(); it != files.end(); ++it) {
       File file;
 
@@ -354,6 +355,7 @@ namespace plotIt {
       file.plot_style = std::make_shared<PlotStyle>();
       file.plot_style->loadFromYAML(node, file.type);
 
+      file.id = process_id++;
       m_files.push_back(file);
     }
 
@@ -803,6 +805,8 @@ namespace plotIt {
 
     if (m_config.verbose) {
       ConsoleSummaryPrinter printer;
+      if (m_config.systematicsBreakdown)
+          printer.enableSystematicsBreakdown();
       printer.print(*summary);
     }
 
@@ -1558,6 +1562,8 @@ int main(int argc, char** argv) {
 
     TCLAP::SwitchArg unblindArg("u", "unblind", "Unblind the plots, ie ignore any blinded-range in the configuration", cmd, false);
 
+    TCLAP::SwitchArg systematicsBreakdownArg("b", "systs-breadown", "Print systematics details for each MC process separately in addition to the total contribution", cmd, false);
+
     TCLAP::UnlabeledValueArg<std::string> configFileArg("configFile", "configuration file", true, "", "string", cmd);
 
     cmd.parse(argc, argv);
@@ -1582,6 +1588,7 @@ int main(int argc, char** argv) {
     p.getConfigurationForEditing().do_plots = !plotsArg.getValue();
     p.getConfigurationForEditing().do_yields = yieldsArg.getValue();
     p.getConfigurationForEditing().unblind = unblindArg.getValue();
+    p.getConfigurationForEditing().systematicsBreakdown = systematicsBreakdownArg.getValue();
 
     p.parseConfigurationFile(configFileArg.getValue());
     p.plotAll();

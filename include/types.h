@@ -109,6 +109,7 @@ namespace plotIt {
   struct File {
     std::string path;
     std::string pretty_name;
+    size_t id = 0;
 
     // For MC and Signal
     float cross_section = 1.;
@@ -394,6 +395,8 @@ namespace plotIt {
     bool unblind = false;
     int16_t blinded_range_fill_color = 42;
     int16_t blinded_range_fill_style = 1001;
+
+    bool systematicsBreakdown = false;
   };
 }
 

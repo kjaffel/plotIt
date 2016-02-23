@@ -86,6 +86,7 @@ namespace plotIt {
 
         SummaryItem summary;
         summary.name = file.pretty_name;
+        summary.process_id = file.id;
 
         double rescaled_integral_error = 0;
         double rescaled_integral = h->IntegralAndError(h->GetXaxis()->GetFirst(), h->GetXaxis()->GetLast(), rescaled_integral_error);
@@ -118,6 +119,7 @@ namespace plotIt {
       } else {
         SummaryItem summary;
         summary.name = file.pretty_name;
+        summary.process_id = file.id;
         summary.events = h->Integral();
         global_summary.add(file.type, summary);
       }
@@ -244,9 +246,6 @@ namespace plotIt {
         }
       }
 
-      // Check if systematic histogram are attached, and add them to the plot
-      std::map<std::tuple<Type, std::string>, SummaryItem> systematics_summary;
-
       // Key is systematics name, value is the combined systematics value for each bin
       std::map<std::string, std::vector<float>> combined_systematics_map;
 
@@ -295,19 +294,12 @@ namespace plotIt {
           }
 
 
-          auto key = std::make_tuple(file.type, syst.name());
-          auto it = systematics_summary.find(key);
+          SummaryItem summary;
+          summary.process_id = file.id;
+          summary.name = syst.prettyName();
+          summary.events_uncertainty = total_syst_error;
 
-          if (it == systematics_summary.end()) {
-            SummaryItem summary;
-            summary.name = syst.prettyName();
-            summary.events_uncertainty = total_syst_error;
-
-            systematics_summary.emplace(key, summary);
-          } else {
-            it->second.events_uncertainty += total_syst_error;
-          }
-
+          global_summary.addSystematics(file.type, file.id, summary);
         }
 
       }
@@ -319,10 +311,6 @@ namespace plotIt {
           float total_error = mc_histo_syst_only->GetBinError(i);
           mc_histo_syst_only->SetBinError(i, std::sqrt(total_error * total_error + combined_systematics.second[i - 1] * combined_systematics.second[i - 1]));
         }
-      }
-
-      for (auto& summary: systematics_summary) {
-        global_summary.addSystematics(std::get<0>(summary.first), summary.second);
       }
 
       // Propagate syst errors to the stat + syst histogram
