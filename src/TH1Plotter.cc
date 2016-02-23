@@ -81,8 +81,6 @@ namespace plotIt {
           factor *= m_plotIt.getConfiguration().scale * file.scale;
         }
 
-        double integral = h->Integral();
-
         h->Scale(factor);
 
         SummaryItem summary;
@@ -100,12 +98,14 @@ namespace plotIt {
         // Bayesian efficiency
         // Taken from https://root.cern.ch/doc/master/TEfficiency_8cxx_source.html#l02428
 
+        /*
         // Use a flat prior (equivalent to Beta(1, 1))
         float alpha = 1.;
         float beta = 1.;
 
         summary.efficiency = TEfficiency::BetaMean(integral + alpha, file.generated_events - integral + beta);
         summary.efficiency_uncertainty = TEfficiency::Bayesian(file.generated_events, integral, 0.68, alpha, beta, true) - summary.efficiency;
+        */
 
         global_summary.add(file.type, summary);
 

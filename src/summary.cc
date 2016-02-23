@@ -52,18 +52,18 @@ namespace plotIt {
 
         // Print header
         std::cout << format(u8"%|1$50|    %|1$9|N ± %|1$6|ΔN") % u8" ";
-        if (type != DATA) {
-            std::cout << format("    %|1$7|ε ± %|1$6|Δε") % " ";
-        }
+        //if (type != DATA) {
+            //std::cout << format("    %|1$7|ε ± %|1$6|Δε") % " ";
+        //}
         std::cout << std::endl;
 
         for (size_t i = 0; i < nominal.size(); i++) {
             const auto& n = nominal[i];
 
             std::cout << Color::FG_YELLOW << format("%|50|") % truncate(n.name, 50) << Color::RESET << "    " << format("%|10.2f| ± %|8.2f|") % n.events % n.events_uncertainty;
-            if (type != DATA) {
-                std::cout << "    " << format("%|8.4f| ± %|8.4f|") % (n.efficiency * 100) % (n.efficiency_uncertainty * 100);
-            }
+            //if (type != DATA) {
+                //std::cout << "    " << format("%|8.4f| ± %|8.4f|") % (n.efficiency * 100) % (n.efficiency_uncertainty * 100);
+            //}
             std::cout << std::endl;
 
             nominal_events += n.events;
