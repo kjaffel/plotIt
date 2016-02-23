@@ -945,7 +945,9 @@ namespace plotIt {
       if (!plot.use_for_yields)
         continue;
 
-      replace_substr(plot.yields_title, "_", "\\_");
+      if (plot.yields_title.find("$") == std::string::npos)
+          replace_substr(plot.yields_title, "_", "\\_");
+
       if( std::find_if(categories.begin(), categories.end(), [&](const std::pair<int, std::string> &x){ return x.second == plot.yields_title; }) != categories.end() )
         return false;
       categories.push_back( std::make_pair(plot.yields_table_order, plot.yields_title) );
@@ -966,7 +968,9 @@ namespace plotIt {
         }
 
         std::string process_name = file.yields_group;
-        replace_substr(process_name, "_", "\\_");
+
+        if (process_name.find("$") == std::string::npos)
+            replace_substr(process_name, "_", "\\_");
 
         if (process_name.find("#") != std::string::npos) {
             // We assume it's a ROOT LaTeX string. Enclose the string into $$, and replace
