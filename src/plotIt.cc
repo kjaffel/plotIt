@@ -348,15 +348,8 @@ namespace plotIt {
       if (node["group"])
         file.legend_group = node["group"].as<std::string>();
 
-      if (node["yields-group"]) {
+      if (node["yields-group"])
         file.yields_group = node["yields-group"].as<std::string>();
-      } else if(node["group"]) {
-        file.yields_group = node["group"].as<std::string>();
-      } else if(node["legend"]) {
-        file.yields_group = node["legend"].as<std::string>();
-      } else {
-        file.yields_group = file.path;
-      }
 
       file.plot_style = std::make_shared<PlotStyle>();
       file.plot_style->loadFromYAML(node, file.type);
@@ -393,10 +386,22 @@ namespace plotIt {
       m_legend_groups[group.name] = group;
     }
 
-    // Remove non-existant groups from files
+    // Remove non-existant groups from files and update yields group
     for (auto& file: m_files) {
       if (!file.legend_group.empty() && !m_legend_groups.count(file.legend_group)) {
         file.legend_group = "";
+      }
+
+      if (file.yields_group.empty()) {
+        if (!file.legend_group.empty()) {
+            file.yields_group = m_legend_groups[file.legend_group].plot_style->legend;
+        }
+
+        if (file.yields_group.empty())
+            file.yields_group = file.plot_style->legend;
+
+        if (file.yields_group.empty())
+            file.yields_group = file.pretty_name;
       }
     }
 
@@ -925,7 +930,7 @@ namespace plotIt {
     std::map<
         std::tuple<Type, std::string, std::string>, // Type, category, systematics name
         double
-    > process_systematics_squared;
+    > process_systematics;
 
     std::map<
         std::string,
@@ -962,7 +967,15 @@ namespace plotIt {
 
         std::string process_name = file.yields_group;
         replace_substr(process_name, "_", "\\_");
-        replace_substr(process_name, "\\", "\\\\");
+
+        if (process_name.find("#") != std::string::npos) {
+            // We assume it's a ROOT LaTeX string. Enclose the string into $$, and replace
+            // '#' by '\'
+
+            replace_substr(process_name, "#", R"(\)");
+            process_name = "$" + process_name + "$";
+        }
+
         std::pair<double, double> yield_sqerror;
         TH1* hist( dynamic_cast<TH1*>(file.object) );
 
@@ -1010,7 +1023,8 @@ namespace plotIt {
           plot_total_systematics[key] += total_syst_error;
         }
 
-        process_systematics_squared[std::make_tuple(file.type, plot.yields_title, process_name)] += file_total_systematics;
+        // file_total_systematics contains the quadratic sum of all the systematics for this file
+        process_systematics[std::make_tuple(file.type, plot.yields_title, process_name)] += std::sqrt(file_total_systematics);
 
         if ( file.type == MC ){
           ADD_PAIRS(mc_yields[plot.yields_title][process_name], yield_sqerror);
@@ -1039,13 +1053,32 @@ namespace plotIt {
     std::sort(categories.begin(), categories.end(), [](const std::pair<int, std::string>& cat1, const std::pair<int, std::string>& cat2){  return cat1.first < cat2.first; });
 
     std::ostringstream latexString;
-    latexString << "\\renewcommand{\\arraystretch}{" << m_config.yields_table_stretch << "}\n";
     std::string tab("    ");
 
     latexString << std::setiosflags(std::ios_base::fixed);
+    latexString << R"(% Yields table generated automatically by plotIt.
+% Needed packages:
+%    \usepackage{booktabs}
+%
+% Use the following if building a CMS document
+%
+% \makeatletter
+% \newcommand{\thickhline}{%
+%     \noalign {\ifnum 0=`}\fi \hrule height .08em
+%     \futurelet \reserved@a \@xhline
+% }
+% \newcommand{\thinhline}{%
+%     \noalign {\ifnum 0=`}\fi \hrule height .05em
+%     \futurelet \reserved@a \@xhline
+% }
+% \makeatother
+% \newcommand{\toprule}{\noalign{\vskip0pt}\thickhline\noalign{\vskip.65ex}}
+% \newcommand{\midrule}{\noalign{\vskip.4ex}\thinhline\noalign{\vskip.65ex}}
+% \newcommand{\bottomrule}{\noalign{\vskip.4ex}\thickhline\noalign{\vskip0pt}})" << std::endl << std::endl;
 
     if( m_config.yields_table_align.find("h") != std::string::npos ){
 
+      latexString << "\\renewcommand{\\arraystretch}{" << m_config.yields_table_stretch << "}\n";
       latexString << "\\begin{tabular}{ |l||";
 
       // tabular config.
@@ -1087,10 +1120,10 @@ namespace plotIt {
         latexString << std::setprecision(m_config.yields_table_num_prec_yields);
 
         for(auto &proc: signal_processes)
-          latexString << "$" << signal_yields[categ][proc].first << " \\pm " << std::sqrt(signal_yields[categ][proc].second + process_systematics_squared[std::make_tuple(SIGNAL, categ, proc)]) << "$ & ";
+          latexString << "$" << signal_yields[categ][proc].first << " \\pm " << std::sqrt(signal_yields[categ][proc].second + std::pow(process_systematics[std::make_tuple(SIGNAL, categ, proc)], 2)) << "$ & ";
 
         for(auto &proc: mc_processes)
-          latexString << "$" << mc_yields[categ][proc].first << " \\pm " << std::sqrt(mc_yields[categ][proc].second + process_systematics_squared[std::make_tuple(MC, categ, proc)]) << "$ & ";
+          latexString << "$" << mc_yields[categ][proc].first << " \\pm " << std::sqrt(mc_yields[categ][proc].second + std::pow(process_systematics[std::make_tuple(MC, categ, proc)], 2)) << "$ & ";
         if( mc_processes.size() )
           latexString << "$" << mc_total[categ] << " \\pm " << std::sqrt(mc_total_sqerrs[categ] + total_systematics_squared[categ][MC]) << "$ & ";
 
@@ -1113,8 +1146,119 @@ namespace plotIt {
 
       latexString << tab << tab << "\\hline\n\\end{tabular}\n";
 
+    } else if (m_config.yields_table_align.find("v") != std::string::npos) {
+
+        // Tabular header
+        latexString << R"(\begin{tabular}{@{}l)";
+        std::string header = " & ";
+        for (size_t i = 0; i < categories.size(); i++) {
+            latexString << "r";
+            header += categories[i].second;
+            if (i != (categories.size() - 1))
+                header += " & ";
+        }
+        latexString << R"(@{}} \toprule)" << std::endl;
+        latexString << header << R"(\\)" << std::endl;
+
+        latexString << std::setprecision(m_config.yields_table_num_prec_yields);
+
+        // Start with signals
+        if (!signal_processes.empty()) {
+            latexString << "Signal sample" << ((signal_processes.size() == 1) ? "" : "s") << R"( & \\ \midrule)" << std::endl;
+
+            // Loop
+            for (const auto& p: signal_processes) {
+
+                latexString << p << " & ";
+
+                for (const auto& c: categories) {
+                    std::string categ = c.second;
+
+                    latexString << "$" << signal_yields[categ][p].first << R"( {\scriptstyle\ \pm\ )" << std::sqrt(signal_yields[categ][p].second + std::pow(process_systematics[std::make_tuple(SIGNAL, categ, p)], 2)) << "}$ & ";
+                }
+
+                latexString.seekp(latexString.tellp() - 2l);
+                latexString << R"( \\ )" << std::endl;
+            }
+
+            // Space
+            if (!mc_processes.empty() || has_data)
+                latexString << R"( & \\)" << std::endl;
+        }
+
+        // Then MC samples
+        if (!mc_processes.empty()) {
+            latexString << "SM sample" << ((mc_processes.size() == 1) ? "" : "s") << R"( & \\ \midrule)" << std::endl;
+
+            // Loop
+            for (const auto& p: mc_processes) {
+
+                latexString << p << " & ";
+
+                for (const auto& c: categories) {
+                    std::string categ = c.second;
+
+                    latexString << "$" << mc_yields[categ][p].first << R"( {\scriptstyle\ \pm\ )" << std::sqrt(mc_yields[categ][p].second + std::pow(process_systematics[std::make_tuple(MC, categ, p)], 2)) << "}$ & ";
+                }
+
+                latexString.seekp(latexString.tellp() - 2l);
+                latexString << R"( \\ )" << std::endl;
+            }
+
+            // Space
+            latexString << R"( & \\)" << std::endl;
+            latexString << R"(Total {\scriptsize $\pm$ (stat.) $\pm$ (syst.)} & )";
+
+            for (const auto& c: categories) {
+                latexString << "$" << mc_total[c.second] << R"({\scriptstyle\ \pm\ )" << std::sqrt(mc_total_sqerrs[c.second]) << R"(\ \pm\ )" << std::sqrt(total_systematics_squared[c.second][MC]) << "}$ & ";
+            }
+
+            latexString.seekp(latexString.tellp() - 2l);
+            latexString << R"( \\ )" << std::endl;
+        }
+
+        // Print data
+        if (has_data) {
+            latexString << R"(\midrule)" << std::endl;
+            //latexString << R"(Data {\scriptsize $\pm$ (stat.)} & )";
+            latexString << R"(Data & )";
+            latexString << std::setprecision(0);
+
+            for (const auto& c: categories) {
+                //latexString << "$" << data_yields[c.second] << R"({\scriptstyle\ \pm\ )" << std::sqrt(data_yields[c.second]) << "}$ & ";
+                latexString << "$" << data_yields[c.second] << "$ & ";
+            }
+
+            latexString.seekp(latexString.tellp() - 2l);
+            latexString << R"( \\ )" << std::endl;
+        }
+
+        // And finally data / MC
+        if (!mc_processes.empty() && has_data) {
+            latexString << R"(\midrule)" << std::endl;
+            //latexString << R"(Data / prediction {\scriptsize $\pm$ (stat.)} & )";
+            latexString << R"(Data / prediction & )";
+            latexString << std::setprecision(m_config.yields_table_num_prec_ratio);
+
+            for (const auto& c: categories) {
+                std::string categ = c.second;
+                double ratio = data_yields[categ] / mc_total[categ];
+                double error_data = 0;
+                double error_mc = std::sqrt(mc_total_sqerrs[categ] + total_systematics_squared[categ][MC]);
+
+                double error = ratio * std::sqrt(std::pow(error_data / data_yields[categ], 2) +  std::pow(error_mc / mc_total[categ], 2));
+
+                latexString << "$" << ratio << R"({\scriptstyle\ \pm\ )" << error << "}$ & ";
+            }
+
+            latexString.seekp(latexString.tellp() - 2l);
+            latexString << R"( \\ )" << std::endl;
+        }
+
+        latexString << R"(\bottomrule)" << std::endl;
+        latexString << R"(\end{tabular})" << std::endl;
     } else {
-      std::cerr << "Error: yields table alignment " << m_config.yields_table_align << " is not recognized (for now, only \"h\" is supported)" << std::endl;
+      std::cerr << "Error: yields table alignment " << m_config.yields_table_align << " is not recognized (for now, only \"h\" and \"v\" are supported)" << std::endl;
       return false;
     }
 
