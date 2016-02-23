@@ -34,13 +34,7 @@ namespace plotIt {
 
     class SummaryPrinter {
         public:
-            void enableSystematicsBreakdown() {
-                systematicsBreakdown = true;
-            }
             virtual void print(const Summary& summary) const = 0;
-
-        protected:
-            bool systematicsBreakdown = false;
     };
 
     class ConsoleSummaryPrinter: public SummaryPrinter {

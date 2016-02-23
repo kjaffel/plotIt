@@ -47,10 +47,6 @@ namespace plotIt {
         return m_config;
       }
 
-      Configuration& getConfigurationForEditing() {
-        return m_config;
-      }
-
       std::shared_ptr<PlotStyle> getPlotStyle(const File& file);
 
       friend PlotStyle;

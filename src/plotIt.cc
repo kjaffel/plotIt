@@ -31,6 +31,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
+#include <commandlinecfg.h>
 #include <plotters.h>
 #include <pool.h>
 #include <summary.h>
@@ -126,7 +127,7 @@ namespace plotIt {
   void plotIt::parseConfigurationFile(const std::string& file) {
     YAML::Node f = YAML::LoadFile(file);
 
-    if (m_config.verbose) {
+    if (CommandLineCfg::get().verbose) {
         std::cout << "Parsing configuration file ...";
     }
 
@@ -645,7 +646,7 @@ namespace plotIt {
 
     parseLumiLabel();
 
-    if (m_config.verbose) {
+    if (CommandLineCfg::get().verbose) {
         std::cout << " done." << std::endl;
     }
   }
@@ -803,10 +804,8 @@ namespace plotIt {
     if (! summary)
       return false;
 
-    if (m_config.verbose) {
+    if (CommandLineCfg::get().verbose) {
       ConsoleSummaryPrinter printer;
-      if (m_config.systematicsBreakdown)
-          printer.enableSystematicsBreakdown();
       printer.print(*summary);
     }
 
@@ -984,7 +983,7 @@ namespace plotIt {
         TH1* hist( dynamic_cast<TH1*>(file.object) );
 
         double factor = m_config.luminosity * file.cross_section * file.branching_ratio / file.generated_events;
-        if (!m_config.ignore_scales)
+        if (!CommandLineCfg::get().ignore_scales)
           factor *= m_config.scale * file.scale;
 
         if (!plot.is_rescaled)
@@ -1266,7 +1265,7 @@ namespace plotIt {
       return false;
     }
 
-    if(m_config.verbose)
+    if(CommandLineCfg::get().verbose)
       std::cout << "LaTeX yields table:\n\n" << latexString.str() << std::endl;
 
     fs::path outputName(m_outputPath);
@@ -1291,7 +1290,7 @@ namespace plotIt {
       }
     }
 
-    if (m_config.verbose)
+    if (CommandLineCfg::get().verbose)
         std::cout << "Loading all plots..." << std::endl;
 
     for (File& file: m_files) {
@@ -1301,15 +1300,16 @@ namespace plotIt {
       file.friend_handles.clear();
     }
 
-    if (m_config.verbose)
+    if (CommandLineCfg::get().verbose)
         std::cout << "done." << std::endl;
 
-    if(m_config.do_plots){
+    if (CommandLineCfg::get().do_plots) {
       for (Plot& plot: plots) {
         plotIt::plot(plot);
       }
     }
-    if(m_config.do_yields){
+
+    if (CommandLineCfg::get().do_yields) {
       plotIt::yields(plots);
     }
   }
@@ -1582,14 +1582,14 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    plotIt::plotIt p(outputPath);
-    p.getConfigurationForEditing().ignore_scales = ignoreScaleArg.getValue();
-    p.getConfigurationForEditing().verbose = verboseArg.getValue();
-    p.getConfigurationForEditing().do_plots = !plotsArg.getValue();
-    p.getConfigurationForEditing().do_yields = yieldsArg.getValue();
-    p.getConfigurationForEditing().unblind = unblindArg.getValue();
-    p.getConfigurationForEditing().systematicsBreakdown = systematicsBreakdownArg.getValue();
+    CommandLineCfg::get().ignore_scales = ignoreScaleArg.getValue();
+    CommandLineCfg::get().verbose = verboseArg.getValue();
+    CommandLineCfg::get().do_plots = !plotsArg.getValue();
+    CommandLineCfg::get().do_yields = yieldsArg.getValue();
+    CommandLineCfg::get().unblind = unblindArg.getValue();
+    CommandLineCfg::get().systematicsBreakdown = systematicsBreakdownArg.getValue();
 
+    plotIt::plotIt p(outputPath);
     p.parseConfigurationFile(configFileArg.getValue());
     p.plotAll();
 

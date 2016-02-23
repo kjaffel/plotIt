@@ -1,4 +1,5 @@
 #include <colors.h>
+#include <commandlinecfg.h>
 #include <summary.h>
 #include <utilities.h>
 
@@ -31,7 +32,7 @@ namespace plotIt {
 
     void ConsoleSummaryPrinter::print(const Summary& summary) const {
         printItems(DATA, summary);
-        printItems(MC, summary, !systematicsBreakdown);
+        printItems(MC, summary, !CommandLineCfg::get().systematicsBreakdown);
         printItems(SIGNAL, summary, false);
     }
 

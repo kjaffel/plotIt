@@ -11,6 +11,7 @@
 #include <TVirtualFitter.h>
 #include <TGraphAsymmErrors.h>
 
+#include <commandlinecfg.h>
 #include <pool.h>
 #include <utilities.h>
 
@@ -76,7 +77,7 @@ namespace plotIt {
       if (file.type != DATA) {
         plot.is_rescaled = true;
         float factor = m_plotIt.getConfiguration().luminosity * file.cross_section * file.branching_ratio / file.generated_events;
-        if (! m_plotIt.getConfiguration().ignore_scales) {
+        if (! CommandLineCfg::get().ignore_scales) {
           factor *= m_plotIt.getConfiguration().scale * file.scale;
         }
 
@@ -210,7 +211,7 @@ namespace plotIt {
 
     // Blind data if requested
     std::shared_ptr<TBox> m_blinded_area;
-    if (!m_plotIt.getConfiguration().unblind && h_data.get() && plot.blinded_range.valid()) {
+    if (!CommandLineCfg::get().unblind && h_data.get() && plot.blinded_range.valid()) {
         float start = plot.blinded_range.start;
         float end = plot.blinded_range.end;
 
@@ -466,7 +467,7 @@ namespace plotIt {
     gPad->Update();
 
     // We have the plot range. Compute the shaded area corresponding to the blinded area, if any
-    if (!m_plotIt.getConfiguration().unblind && h_data.get() && plot.blinded_range.valid()) {
+    if (!CommandLineCfg::get().unblind && h_data.get() && plot.blinded_range.valid()) {
         float x_start = plot.blinded_range.start;
         float x_end = plot.blinded_range.end;
 
