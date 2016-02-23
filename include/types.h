@@ -109,6 +109,7 @@ namespace plotIt {
   struct File {
     std::string path;
     std::string pretty_name;
+    size_t id = 0;
 
     // For MC and Signal
     float cross_section = 1.;
@@ -374,11 +375,7 @@ namespace plotIt {
 
     std::string root = "./";
 
-    bool ignore_scales = false;
-    bool verbose = false;
     bool show_overflow = false;
-    bool do_plots = true;
-    bool do_yields = false;
 
     std::string mode = "hist"; // "tree" or "hist"
     std::string tree_name;
@@ -391,7 +388,6 @@ namespace plotIt {
     int yields_table_num_prec_yields = 1;
     int yields_table_num_prec_ratio = 2;
 
-    bool unblind = false;
     int16_t blinded_range_fill_color = 42;
     int16_t blinded_range_fill_style = 1001;
   };

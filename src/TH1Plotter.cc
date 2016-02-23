@@ -11,6 +11,7 @@
 #include <TVirtualFitter.h>
 #include <TGraphAsymmErrors.h>
 
+#include <commandlinecfg.h>
 #include <pool.h>
 #include <utilities.h>
 
@@ -76,16 +77,15 @@ namespace plotIt {
       if (file.type != DATA) {
         plot.is_rescaled = true;
         float factor = m_plotIt.getConfiguration().luminosity * file.cross_section * file.branching_ratio / file.generated_events;
-        if (! m_plotIt.getConfiguration().ignore_scales) {
+        if (! CommandLineCfg::get().ignore_scales) {
           factor *= m_plotIt.getConfiguration().scale * file.scale;
         }
-
-        double integral = h->Integral();
 
         h->Scale(factor);
 
         SummaryItem summary;
         summary.name = file.pretty_name;
+        summary.process_id = file.id;
 
         double rescaled_integral_error = 0;
         double rescaled_integral = h->IntegralAndError(h->GetXaxis()->GetFirst(), h->GetXaxis()->GetLast(), rescaled_integral_error);
@@ -98,12 +98,14 @@ namespace plotIt {
         // Bayesian efficiency
         // Taken from https://root.cern.ch/doc/master/TEfficiency_8cxx_source.html#l02428
 
+        /*
         // Use a flat prior (equivalent to Beta(1, 1))
         float alpha = 1.;
         float beta = 1.;
 
         summary.efficiency = TEfficiency::BetaMean(integral + alpha, file.generated_events - integral + beta);
         summary.efficiency_uncertainty = TEfficiency::Bayesian(file.generated_events, integral, 0.68, alpha, beta, true) - summary.efficiency;
+        */
 
         global_summary.add(file.type, summary);
 
@@ -118,6 +120,7 @@ namespace plotIt {
       } else {
         SummaryItem summary;
         summary.name = file.pretty_name;
+        summary.process_id = file.id;
         summary.events = h->Integral();
         global_summary.add(file.type, summary);
       }
@@ -208,7 +211,7 @@ namespace plotIt {
 
     // Blind data if requested
     std::shared_ptr<TBox> m_blinded_area;
-    if (!m_plotIt.getConfiguration().unblind && h_data.get() && plot.blinded_range.valid()) {
+    if (!CommandLineCfg::get().unblind && h_data.get() && plot.blinded_range.valid()) {
         float start = plot.blinded_range.start;
         float end = plot.blinded_range.end;
 
@@ -243,9 +246,6 @@ namespace plotIt {
           mc_histo_syst_only->SetBinError(i, std::sqrt(error * error + lumi_error * lumi_error));
         }
       }
-
-      // Check if systematic histogram are attached, and add them to the plot
-      std::map<std::tuple<Type, std::string>, SummaryItem> systematics_summary;
 
       // Key is systematics name, value is the combined systematics value for each bin
       std::map<std::string, std::vector<float>> combined_systematics_map;
@@ -295,19 +295,12 @@ namespace plotIt {
           }
 
 
-          auto key = std::make_tuple(file.type, syst.name());
-          auto it = systematics_summary.find(key);
+          SummaryItem summary;
+          summary.process_id = file.id;
+          summary.name = syst.prettyName();
+          summary.events_uncertainty = total_syst_error;
 
-          if (it == systematics_summary.end()) {
-            SummaryItem summary;
-            summary.name = syst.prettyName();
-            summary.events_uncertainty = total_syst_error;
-
-            systematics_summary.emplace(key, summary);
-          } else {
-            it->second.events_uncertainty += total_syst_error;
-          }
-
+          global_summary.addSystematics(file.type, file.id, summary);
         }
 
       }
@@ -319,10 +312,6 @@ namespace plotIt {
           float total_error = mc_histo_syst_only->GetBinError(i);
           mc_histo_syst_only->SetBinError(i, std::sqrt(total_error * total_error + combined_systematics.second[i - 1] * combined_systematics.second[i - 1]));
         }
-      }
-
-      for (auto& summary: systematics_summary) {
-        global_summary.addSystematics(std::get<0>(summary.first), summary.second);
       }
 
       // Propagate syst errors to the stat + syst histogram
@@ -478,7 +467,7 @@ namespace plotIt {
     gPad->Update();
 
     // We have the plot range. Compute the shaded area corresponding to the blinded area, if any
-    if (!m_plotIt.getConfiguration().unblind && h_data.get() && plot.blinded_range.valid()) {
+    if (!CommandLineCfg::get().unblind && h_data.get() && plot.blinded_range.valid()) {
         float x_start = plot.blinded_range.start;
         float x_end = plot.blinded_range.end;
 
