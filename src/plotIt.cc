@@ -965,7 +965,8 @@ namespace plotIt {
         }
 
         if ( file.type == DATA ){
-          data_yields[plot.yields_title] += dynamic_cast<TH1*>(file.object)->Integral();
+          TH1* h = dynamic_cast<TH1*>(file.object);
+          data_yields[plot.yields_title] += h->Integral(0, h->GetNbinsX() + 1);
           has_data = true;
           continue;
         }
@@ -998,8 +999,8 @@ namespace plotIt {
           syst.scale(factor);
         }
 
-        // Retrieve yield and stat. error
-        yield_sqerror.first = hist->IntegralAndError(1, hist->GetNbinsX(), yield_sqerror.second);
+        // Retrieve yield and stat. error, taking overflow into account
+        yield_sqerror.first = hist->IntegralAndError(0, hist->GetNbinsX() + 1, yield_sqerror.second);
         yield_sqerror.second = std::pow(yield_sqerror.second, 2);
 
         // Add systematics
@@ -1013,16 +1014,14 @@ namespace plotIt {
           if (! nominal_shape || ! up_shape || ! down_shape)
               continue;
 
-          double total_syst_error = 0;
-          for (size_t i = 1; i <= (size_t) nominal_shape->GetNbinsX(); i++) {
-            float syst_error_up = std::abs(up_shape->GetBinContent(i) - nominal_shape->GetBinContent(i));
-            float syst_error_down = std::abs(nominal_shape->GetBinContent(i) - down_shape->GetBinContent(i));
+          double nominal_integral = nominal_shape->Integral(0, nominal_shape->GetNbinsX() + 1);
+          double up_integral = up_shape->Integral(0, up_shape->GetNbinsX() + 1);
+          double down_integral = down_shape->Integral(0, down_shape->GetNbinsX() + 1);
 
-            // FIXME: Add support for asymetric errors
-            float syst_error = std::max(syst_error_up, syst_error_down);
-
-            total_syst_error += syst_error;
-          }
+          double total_syst_error = std::max(
+                  std::abs(up_integral - nominal_integral),
+                  std::abs(nominal_integral - down_integral)
+          );
 
           file_total_systematics += total_syst_error * total_syst_error;
 
