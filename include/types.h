@@ -390,6 +390,9 @@ namespace plotIt {
 
     int16_t blinded_range_fill_color = 42;
     int16_t blinded_range_fill_style = 1001;
+
+    std::string book_keeping_file_name;
+    std::shared_ptr<TFile> book_keeping_file;
   };
 }
 

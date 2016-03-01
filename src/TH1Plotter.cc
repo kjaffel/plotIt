@@ -430,6 +430,15 @@ namespace plotIt {
     // First, draw MC
     if (mc_stack.get()) {
       mc_stack->Draw("same");
+
+      // Clear all the possible stats box remaining
+      mc_stack->GetHistogram()->SetStats(false);
+      TIter next(mc_stack->GetHists());
+      TH1* h = nullptr;
+      while ((h = static_cast<TH1*>(next()))) {
+          h->SetStats(false);
+      }
+
       TemporaryPool::get().add(mc_stack);
     }
 

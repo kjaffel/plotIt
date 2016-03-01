@@ -300,6 +300,9 @@ namespace plotIt {
 
       if (node["yields-table-numerical-precision-ratio"])
         m_config.yields_table_num_prec_ratio = node["yields-table-numerical-precision-ratio"].as<int>();
+
+      if (node["book-keeping-file"])
+        m_config.book_keeping_file_name = node["book-keeping-file"].as<std::string>();
     }
 
     // Retrieve files/processes configuration
@@ -796,8 +799,11 @@ namespace plotIt {
       hasSignal |= file.type == SIGNAL;
     }
 
+    std::string plot_name = plot.name + plot.output_suffix;
+    boost::replace_all(plot_name, "/", "_");
+
     // Create canvas
-    TCanvas c("canvas", "canvas", m_config.width, m_config.height);
+    TCanvas c(plot_name.c_str(), plot_name.c_str(), m_config.width, m_config.height);
 
     boost::optional<Summary> summary = ::plotIt::plot(m_files[0], c, plot);
 
@@ -896,14 +902,16 @@ namespace plotIt {
       TemporaryPool::get().add(t);
     }
 
-    std::string plot_name = plot.name + plot.output_suffix;
-    boost::replace_all(plot_name, "/", "_");
     fs::path outputName = m_outputPath / plot_name;
 
     for (const std::string& extension: plot.save_extensions) {
       fs::path outputNameWithExtension = outputName.replace_extension(extension);
 
       c.SaveAs(outputNameWithExtension.string().c_str());
+    }
+
+    if (m_config.book_keeping_file) {
+      m_config.book_keeping_file->WriteTObject(&c, nullptr, "Overwrite");
     }
 
     // Clean all temporary resources
@@ -1306,10 +1314,20 @@ namespace plotIt {
     if (CommandLineCfg::get().verbose)
         std::cout << "done." << std::endl;
 
+    if (!m_config.book_keeping_file_name.empty()) {
+      fs::path outputName = m_outputPath / m_config.book_keeping_file_name;
+      m_config.book_keeping_file.reset(TFile::Open(outputName.native().c_str(), "recreate"));
+    }
+
     if (CommandLineCfg::get().do_plots) {
       for (Plot& plot: plots) {
         plotIt::plot(plot);
       }
+    }
+
+    if (m_config.book_keeping_file) {
+      m_config.book_keeping_file->Close();
+      m_config.book_keeping_file.reset();
     }
 
     if (CommandLineCfg::get().do_yields) {
