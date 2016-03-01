@@ -61,6 +61,8 @@ namespace plotIt {
   template<class T>
     void setDefaultStyle(T* object, float topBottomScaleFactor) {
 
+      // Remove title
+      object->SetBit(TH1::kNoTitle);
       object->SetLabelFont(43, "XYZ");
       object->SetTitleFont(43, "XYZ");
       object->SetLabelSize(LABEL_FONTSIZE, "XYZ");
@@ -75,6 +77,9 @@ namespace plotIt {
       object->GetXaxis()->SetTitleOffset(1.5 * topBottomScaleFactor);
       object->GetXaxis()->SetLabelOffset(0.012 * topBottomScaleFactor);
       object->GetXaxis()->SetTickLength(0.03);
+
+      // No stats box
+      object->SetStats(false);
       
     }
 
