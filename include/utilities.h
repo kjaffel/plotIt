@@ -179,4 +179,6 @@ namespace plotIt {
           return str;
       }
   }
+
+  TDirectory* getDirectory(TDirectoryFile* root, const boost::filesystem::path& directory, bool create = true);
 }

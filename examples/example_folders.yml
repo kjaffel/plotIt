@@ -5,29 +5,36 @@ configuration:
   experiment: "CMS"
   extra-label: "Preliminary"
   root: 'files'
-  luminosity: 100
-  luminosity-error: 0.026
+  luminosity: 1
+  luminosity-error: 0.046
   error-fill-style: 3154
   error-fill-color: "#ee556270"
   ratio-fit-error-fill-style: 1001
   ratio-fit-error-fill-color: "#aa556270"
   ratio-fit-line-color: "#0B486B"
-  labels: 
-    - text: "coucou"
-      position: [0.1, 0.3]
-      size: 18
+  blinded-range-fill-color: "#29556270"
+  blinded-range-fill-style: 1001
+  yields-table-align: v
+  book-keeping-file: 'plots.root'
 
 files:
   include: ['example_files.yml']
 
+systematics:
+  - alpha # Shape systematics
+  - beta: {type: shape}  # Shape systematics
+  - gamma: {type: ln, prior: 1.072, pretty-name: "Gamma"}  # Log-normal systematics, +7.2%, -2.97%, exp(+/- 1 * log(prior))
+  - delta: 1.14  # Constant systematics, +- 14%
+  - epsilon: {type: const, value: 1.08, on: 'sample1'}
+
 plots:
-  'test/histo1':
+  '*histo1':
     x-axis: "X axis"
     y-axis: "Y axis"
     y-axis-format: "%1% / %2$.0f GeV"
     normalized: false
 
-  'test/histo2':
+  '*histo2':
     x-axis: "X axis"
     y-axis: "Y axis"
     normalized: false
