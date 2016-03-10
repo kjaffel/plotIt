@@ -1513,7 +1513,10 @@ namespace plotIt {
                   continue;
               }
 
-              content.push_back(prefix + "/" + name);
+              std::string new_prefix = prefix;
+              if (!new_prefix.empty())
+                  new_prefix += "/";
+              content.push_back(new_prefix + name);
           }
       }
   }
