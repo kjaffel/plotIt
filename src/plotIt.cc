@@ -200,6 +200,9 @@ namespace plotIt {
         throw YAML::ParserException(YAML::Mark::null_mark(), "'configuration' block is missing luminosity");
       }
 
+      if (node["no-lumi-rescaling"])
+        m_config.no_lumi_rescaling = node["no-lumi-rescaling"].as<bool>();
+
       if (node["luminosity-error"]) {
         float value = node["luminosity-error"].as<float>();
 
@@ -996,7 +999,11 @@ namespace plotIt {
         std::pair<double, double> yield_sqerror;
         TH1* hist( dynamic_cast<TH1*>(file.object) );
 
-        double factor = m_config.luminosity * file.cross_section * file.branching_ratio / file.generated_events;
+        double factor = file.cross_section * file.branching_ratio / file.generated_events;
+
+        if (! m_config.no_lumi_rescaling) {
+          factor *= m_config.luminosity;
+        }
         if (!CommandLineCfg::get().ignore_scales)
           factor *= m_config.scale * file.scale;
 

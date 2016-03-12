@@ -340,6 +340,7 @@ namespace plotIt {
     float height = 800;
     float luminosity = -1;
     float scale = 1;
+    bool no_lumi_rescaling = false;
 
     // Systematics
     float luminosity_error_percent = 0;
