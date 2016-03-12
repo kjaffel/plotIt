@@ -76,7 +76,13 @@ namespace plotIt {
 
       if (file.type != DATA) {
         plot.is_rescaled = true;
-        float factor = m_plotIt.getConfiguration().luminosity * file.cross_section * file.branching_ratio / file.generated_events;
+
+        float factor = file.cross_section * file.branching_ratio / file.generated_events;
+
+        if (! m_plotIt.getConfiguration().no_lumi_rescaling) {
+          factor *= m_plotIt.getConfiguration().luminosity;
+        }
+
         if (! CommandLineCfg::get().ignore_scales) {
           factor *= m_plotIt.getConfiguration().scale * file.scale;
         }
