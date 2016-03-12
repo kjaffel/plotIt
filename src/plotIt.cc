@@ -660,15 +660,12 @@ namespace plotIt {
 
   void plotIt::parseLumiLabel() {
 
-    m_config.lumi_label_parsed = m_config.lumi_label;
+    boost::format formatter = get_formatter(m_config.lumi_label);
 
     float lumi = m_config.luminosity / 1000.;
+    formatter % lumi;
 
-    std::ostringstream out;
-    out << std::fixed << std::setprecision(2) << lumi;
-    std::string lumiStr = out.str();
-
-    boost::algorithm::replace_all(m_config.lumi_label_parsed, "%lumi%", lumiStr);
+    m_config.lumi_label = formatter.str();
   }
 
   void plotIt::fillLegend(TLegend& legend, const Plot& plot, bool with_uncertainties) {
@@ -846,7 +843,7 @@ namespace plotIt {
     TGaxis::SetExponentOffset(-0.06, 0, "y");
 
     // Luminosity label
-    if (m_config.lumi_label_parsed.length() > 0) {
+    if (m_config.lumi_label.length() > 0) {
       std::shared_ptr<TPaveText> pt = std::make_shared<TPaveText>(LEFT_MARGIN, 1 - 0.5 * topMargin, 1 - RIGHT_MARGIN, 1, "brNDC");
       TemporaryPool::get().add(pt);
 
@@ -857,7 +854,7 @@ namespace plotIt {
       pt->SetTextSize(0.6 * topMargin);
       pt->SetTextAlign(33);
 
-      pt->AddText(m_config.lumi_label_parsed.c_str());
+      pt->AddText(m_config.lumi_label.c_str());
       pt->Draw();
     }
 

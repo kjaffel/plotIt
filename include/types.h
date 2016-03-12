@@ -372,7 +372,6 @@ namespace plotIt {
     std::string extra_label;
 
     std::string lumi_label;
-    std::string lumi_label_parsed;
 
     std::string root = "./";
 
