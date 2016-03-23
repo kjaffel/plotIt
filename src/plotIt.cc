@@ -268,6 +268,9 @@ namespace plotIt {
       if (node["blinded-range-fill-style"])
         m_config.blinded_range_fill_style = node["blinded-range-fill-style"].as<uint16_t>();
 
+      if (node["uncertainty-label"])
+        m_config.uncertainty_label = node["uncertainty-label"].as<std::string>();
+
       m_config.line_style.parse(node);
 
       if (node["labels"]) {
@@ -759,7 +762,7 @@ namespace plotIt {
 
       // Finally, if requested, the uncertainties entry
       if (with_uncertainties)
-          legend_entries[0].push_back({"errors", "Uncertainties", "f", m_config.error_fill_style, m_config.error_fill_color, 0});
+          legend_entries[0].push_back({"errors", m_config.uncertainty_label, "f", m_config.error_fill_style, m_config.error_fill_color, 0});
 
       // Ensure all columns have the same size
       size_t max_size = 0;
