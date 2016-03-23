@@ -51,8 +51,22 @@ plots:
     legend-columns: 1
 
 legend:
-  position: [0.25, 0.78, 0.45, 0.9]
+  position: [0.25, 0.78, 0.75, 0.9]
   columns: 2
+  entries:
+    - 
+      label: 'Extra MC legend entry'
+      type: mc
+      order: 15
+    - 
+      label: 'Extra data legend entry'
+      type: data
+      order: 15
+    - 
+      label: 'Extra signal legend entry'
+      type: signal
+      order: 15
+ 
 
 groups:
   data:
