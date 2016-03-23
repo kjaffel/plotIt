@@ -3,6 +3,8 @@
 #include <types.h>
 #include <utilities.h>
 
+#include <TLegendEntry.h>
+
 namespace plotIt {
   void PlotStyle::loadFromYAML(YAML::Node& node, Type type) {
     if (node["legend"])
@@ -116,5 +118,25 @@ namespace plotIt {
               end = {value, NaN};
           }
       }
+  }
+
+  LegendEntry::LegendEntry(TObject* object, const std::string& legend, const std::string& style, int16_t order):
+      object(object), legend(legend), style(style), order(order) {
+          // Empty
+      }
+
+  LegendEntry::LegendEntry(const std::string& legend, const std::string& style, int16_t fill_style, int16_t fill_color, uint16_t line_width):
+      object(nullptr), legend(legend), style(style), order(0), fill_style(fill_style), fill_color(fill_color), line_width(line_width) {
+          // Empty
+      }
+
+  void LegendEntry::stylize(TLegendEntry* entry) {
+      if (object)
+          return;
+
+      entry->SetLineWidth(line_width);
+      entry->SetLineColor(fill_color);
+      entry->SetFillStyle(fill_style);
+      entry->SetFillColor(fill_color);
   }
 }

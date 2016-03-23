@@ -16,6 +16,8 @@
 #include <TFile.h>
 #include <TChain.h>
 
+class TLegendEntry;
+
 namespace plotIt {
 
   enum Type {
@@ -23,6 +25,15 @@ namespace plotIt {
     SIGNAL,
     DATA
   };
+
+  inline Type string_to_type(const std::string& type) {
+      if (type == "signal")
+          return SIGNAL;
+      else if (type == "data")
+          return DATA;
+      else
+          return MC;
+  }
 
   inline std::string type_to_string(const Type& type) {
       switch (type) {
@@ -335,6 +346,22 @@ namespace plotIt {
     size_t columns = 1;
   };
 
+  struct LegendEntry {
+      TObject* object = nullptr;
+      std::string legend;
+      std::string style;
+      int16_t order = 0;
+
+      int16_t fill_style = 0;
+      int16_t fill_color = 0;
+      uint16_t line_width = 0;
+
+      LegendEntry() = default;
+      LegendEntry(TObject* object, const std::string& legend, const std::string& style, int16_t order);
+      LegendEntry(const std::string& legend, const std::string& style, int16_t fill_style, int16_t fill_color, uint16_t line_width);
+      void stylize(TLegendEntry* entry);
+  };
+
   struct Configuration {
     float width = 800;
     float height = 800;
@@ -392,6 +419,7 @@ namespace plotIt {
     int16_t blinded_range_fill_style = 1001;
 
     std::string uncertainty_label = "Uncertainty";
+    std::map<Type, std::vector<LegendEntry>> static_legend_entries;
 
     std::string book_keeping_file_name;
     std::shared_ptr<TFile> book_keeping_file;

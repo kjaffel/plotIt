@@ -187,7 +187,7 @@ class plotItTestCase(plotItSimpleTestCase):
                 get_golden_file('default_configuration_ratio.pdf')
                 )
 
-    def test_default_legend_columns(self):
+    def test_legend(self):
         configuration = get_configuration()
 
         configuration['legend']['columns'] = 1
@@ -226,6 +226,24 @@ class plotItTestCase(plotItSimpleTestCase):
         self.compare_images(
                 os.path.join(self.output_folder.name, 'histo1.pdf'),
                 get_golden_file('default_configuration_2columns_samplesordering_legend.pdf')
+                )
+
+        
+        configuration = get_configuration()
+        configuration['legend']['columns'] = 2
+        configuration['legend']['position'][2] = 0.75
+
+        configuration['legend']['entries'] = [
+                {'label': 'Extra MC legend entry', 'type': 'mc', 'order': 1000},
+                {'label': 'Extra signal legend entry', 'type': 'signal', 'order': 1000},
+                ]
+
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_extra_legend_entries.pdf')
                 )
 
     def test_lines(self):

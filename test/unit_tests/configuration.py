@@ -2,7 +2,7 @@ def conf_get_configuration():
     f = {
             'width': 800,
             'height': 800,
-            'luminosity-label': '%lumi% fb^{-1} (8 TeV)',
+            'luminosity-label': '%1$.2f fb^{-1} (8 TeV)',
             'experiment': "CMS",
             'extra-label': "Preliminary",
             'root': 'files',
