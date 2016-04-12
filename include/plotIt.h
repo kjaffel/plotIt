@@ -15,6 +15,7 @@
 #include <vector>
 #include <string>
 #include <glob.h>
+#include <unordered_map>
 
 #include <types.h>
 #include <defines.h>
@@ -78,6 +79,8 @@ namespace plotIt {
       std::vector<SystematicPtr> m_systematics;
       std::map<std::string, Group> m_legend_groups;
       std::map<std::string, Group> m_yields_groups;
+
+      std::unordered_map<std::string, TDirectory*> m_book_keeping_folders;
 
       // Current style
       std::shared_ptr<TStyle> m_style;

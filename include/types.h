@@ -257,6 +257,7 @@ namespace plotIt {
     std::string output_suffix;
     std::string uid = get_uuid();
     std::string exclude;
+    std::string book_keeping_folder;
 
     bool no_data = false;
     bool override = false; // flag to plot only those which have it true (if at least one plot has it true)

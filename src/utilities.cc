@@ -217,4 +217,25 @@ namespace plotIt {
       return node.as<int16_t>();
     }
   }
+
+  namespace fs = boost::filesystem;
+
+  TDirectory* getDirectory(TDirectoryFile* root, const boost::filesystem::path& path, bool create/* = true*/) {
+
+      TDirectoryFile* local_root = root;
+
+      for (const auto& folder: path) {
+          TDirectoryFile* ptr = nullptr;
+          local_root->GetObject(folder.c_str(), ptr);
+
+          if (! ptr && create) {
+              // No leak here, memory is managed by the file itself...
+              ptr = new TDirectoryFile(folder.c_str(), folder.c_str(), "", local_root);
+          }
+
+          local_root = ptr;
+      }
+
+      return local_root;
+  }
 }

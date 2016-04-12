@@ -622,6 +622,10 @@ namespace plotIt {
           line.style = m_config.line_style;
       }
 
+      if (node["book-keeping-folder"]) {
+        plot.book_keeping_folder = node["book-keeping-folder"].as<std::string>();
+      }
+
       // Handle log
       std::vector<bool> logs_x;
       std::vector<bool> logs_y;
@@ -786,8 +790,9 @@ namespace plotIt {
       hasSignal |= file.type == SIGNAL;
     }
 
-    std::string plot_name = plot.name + plot.output_suffix;
-    boost::replace_all(plot_name, "/", "_");
+    // Can contains '/' if the plot is inside a folder
+    fs::path plot_path = plot.name + plot.output_suffix;
+    std::string plot_name = plot_path.filename().string();
 
     // Create canvas
     TCanvas c(plot_name.c_str(), plot_name.c_str(), m_config.width, m_config.height);
@@ -889,16 +894,30 @@ namespace plotIt {
       TemporaryPool::get().add(t);
     }
 
-    fs::path outputName = m_outputPath / plot_name;
+    fs::path outputName = m_outputPath / plot_path;
+    // Ensure path exists
+    fs::create_directories(outputName.parent_path());
 
     for (const std::string& extension: plot.save_extensions) {
       fs::path outputNameWithExtension = outputName.replace_extension(extension);
 
-      c.SaveAs(outputNameWithExtension.string().c_str());
+      c.SaveAs(outputNameWithExtension.c_str());
     }
 
     if (m_config.book_keeping_file) {
-      m_config.book_keeping_file->WriteTObject(&c, nullptr, "Overwrite");
+      TDirectory* root = m_config.book_keeping_file.get();
+      if (!plot.book_keeping_folder.empty() || !plot_path.parent_path().empty()) {
+        // Look in the cache if we have this folder. This avoid querying the file each time we save a plot
+        std::string path = (!plot.book_keeping_folder.empty()) ? plot.book_keeping_folder : plot_path.parent_path().string();
+        auto it = m_book_keeping_folders.find(path);
+        if (it == m_book_keeping_folders.end()) {
+          root = ::plotIt::getDirectory(m_config.book_keeping_file.get(), path);
+          m_book_keeping_folders.emplace(path, root);
+        } else {
+          root = it->second;
+        }
+      }
+      root->WriteTObject(&c, nullptr, "Overwrite");
     }
 
     // Clean all temporary resources
