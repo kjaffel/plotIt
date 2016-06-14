@@ -216,6 +216,9 @@ namespace plotIt {
     }
 
     // Blind data if requested
+    // It's not enough to put the bin content to zero, because
+    // ROOT will show the marker, even with 'P'
+    // The histogram is cloned, reset, and only the non-blinded bins are filled
     std::shared_ptr<TBox> m_blinded_area;
     if (!CommandLineCfg::get().unblind && h_data.get() && plot.blinded_range.valid()) {
         float start = plot.blinded_range.start;
@@ -224,9 +227,21 @@ namespace plotIt {
         size_t start_bin = h_data->FindBin(start);
         size_t end_bin = h_data->FindBin(end);
 
-        for (size_t i = start_bin; i <= end_bin; i++) {
-            h_data->SetBinContent(i, 0);
+        TH1* clone = static_cast<TH1*>(h_data->Clone());
+        clone->SetDirectory(nullptr);
+
+        h_data->Reset();
+        h_data->Sumw2(false);
+
+        for (size_t i = 0; i < start_bin; i++) {
+            h_data->SetBinContent(i, clone->GetBinContent(i));
         }
+
+        for (size_t i = end_bin + 1; i <= static_cast<size_t>(h_data->GetNbinsX()); i++) {
+            h_data->SetBinContent(i, clone->GetBinContent(i));
+        }
+
+        delete clone;
     }
 
     if (mc_histo_stat_only.get()) {
