@@ -174,8 +174,13 @@ namespace plotIt {
           return getPositiveMinimum(dynamic_cast<TH1*>(object));
       else if (dynamic_cast<THStack*>(object)) {
           THStack* stack = dynamic_cast<THStack*>(object);
-          size_t n = (size_t) stack->GetNhists() - 1;
-          return getPositiveMinimum(static_cast<TH1*>(stack->GetStack()->At(n)));
+          const auto stackList = stack->GetStack();
+          float minimum{getPositiveMinimum(static_cast<TH1*>(stackList->At(0)))};
+          for ( size_t i{1}; size_t(stack->GetNhists()) > i; ++i ) {
+            float iMin = getPositiveMinimum(static_cast<TH1*>(stackList->At(i)));
+            if ( iMin < minimum ) { minimum = iMin; }
+          }
+          return minimum;
       }
 
       return 0;

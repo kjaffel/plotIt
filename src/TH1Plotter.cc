@@ -436,8 +436,6 @@ namespace plotIt {
 
       if (!plot.log_y)
         minimum = minimum * (1 - std::copysign(safe_margin, minimum));
-      else
-        minimum /= safe_margin;
 
       if (plot.y_axis_show_zero && !plot.log_y)
         minimum = 0;
