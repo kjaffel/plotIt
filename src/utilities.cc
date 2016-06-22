@@ -180,6 +180,7 @@ namespace plotIt {
             float iMin = getPositiveMinimum(static_cast<TH1*>(stackList->At(i)));
             if ( iMin < minimum ) { minimum = iMin; }
           }
+          return minimum;
       }
 
       return 0;
