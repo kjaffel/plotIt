@@ -159,13 +159,65 @@ namespace plotIt {
 
     std::vector<File> signal_files;
 
+    // First pass. Create one histogram per group
+    // Key is group name, value is group histogram
+    std::vector<std::pair<std::string, std::shared_ptr<TH1>>> group_histograms;
+    for (File& file: m_plotIt.getFiles()) {
+        if (file.type != MC)
+            continue;
+
+        if (file.legend_group.empty())
+            continue;
+
+        auto it = std::find_if(group_histograms.begin(), group_histograms.end(), [&file](const std::pair<std::string, std::shared_ptr<TH1>>& item) {
+            return item.first == file.legend_group;
+        });
+
+        TH1* nominal = dynamic_cast<TH1*>(file.object);
+
+        // Do not bother with histograms with no entries
+        if (nominal->GetEntries() == 0)
+            continue;
+
+        if (it == group_histograms.end()) {
+            std::shared_ptr<TH1> h(dynamic_cast<TH1*>(nominal->Clone()));
+            h->SetDirectory(nullptr);
+            group_histograms.push_back(std::make_pair(file.legend_group, h));
+        } else {
+            it->second->Add(nominal);
+        }
+    }
+
     for (File& file: m_plotIt.getFiles()) {
       if (file.type == MC) {
 
         TH1* nominal = dynamic_cast<TH1*>(file.object);
 
+        // Do not bother with histograms with no entries
+        if (file.legend_group.empty() && nominal->GetEntries() == 0)
+            continue;
+
         if (mc_stack.get() == nullptr)
           mc_stack = std::make_shared<THStack>("mc_stack", "mc_stack");
+
+        auto it = std::find_if(group_histograms.begin(), group_histograms.end(), [&file](const std::pair<std::string, std::shared_ptr<TH1>>& item) {
+            return item.first == file.legend_group;
+        });
+
+        if (!file.legend_group.empty() && it == group_histograms.end()) {
+            // The group histogram has already been added to the stack, so
+            // skip to the next one
+            continue;
+        } else if (it != group_histograms.end()) {
+            auto n = it->second;
+            TemporaryPool::get().add(n);
+
+            nominal = n.get();
+
+            // Since we will add this group histogram to the stack
+            // remove it from the pool to avoid double addition
+            group_histograms.erase(it);
+        }
 
         mc_stack->Add(nominal, m_plotIt.getPlotStyle(file)->drawing_options.c_str());
         if (mc_histo_stat_only.get()) {
@@ -785,7 +837,7 @@ namespace plotIt {
 
   void TH1Plotter::addOverflow(TH1* h, Type type, const Plot& plot) {
 
-    if (!h)
+    if (!h || !h->GetEntries())
         return;
 
     size_t first_bin = 1;
