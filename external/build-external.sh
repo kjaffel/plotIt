@@ -20,10 +20,13 @@ cd ../..
 rm yaml-cpp-release-0.5.3.tar.gz
 
 # TCLAP
-curl -L "http://downloads.sourceforge.net/project/tclap/{tclap-1.2.1.tar.gz}?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Ftclap%2Ffiles%2F&ts=1431017326&use_mirror=freefr" -o "#1"
+curl -L "https://github.com/eile/tclap/archive/tclap-1-2-1-release-final.tar.gz" -o "tclap-1.2.1.tar.gz"
 tar xf tclap-1.2.1.tar.gz
+mv tclap-tclap-1-2-1-release-final tclap-1.2.1
 
 cd tclap-1.2.1
+
+./autotools.sh
 ./configure --prefix=$PWD/../
 
 make -j4
