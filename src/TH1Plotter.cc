@@ -482,7 +482,7 @@ namespace plotIt {
 
     // And finally data
     if (h_data.get()) {
-      data_drawing_options += " E X0 same";
+      data_drawing_options += " same";
       h_data->Draw(data_drawing_options.c_str());
       TemporaryPool::get().add(h_data);
     }

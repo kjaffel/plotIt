@@ -29,7 +29,7 @@ namespace plotIt {
       if (type == MC || type == SIGNAL)
         drawing_options = "hist";
       else if (type == DATA)
-        drawing_options = "P";
+        drawing_options = "P E X0";
     }
 
     marker_size = -1;
