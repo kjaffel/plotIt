@@ -2,8 +2,8 @@
 
 # YAML
 
-curl -O -J -L https://github.com/jbeder/yaml-cpp/archive/release-0.5.3.tar.gz
-tar xf yaml-cpp-release-0.5.3.tar.gz
+curl -O -L https://github.com/jbeder/yaml-cpp/archive/release-0.5.3.tar.gz
+tar xf release-0.5.3.tar.gz
 
 patch -p0 < yaml-cpp-cmake-fix.patch
 
@@ -17,7 +17,7 @@ make -j4
 make install
 
 cd ../..
-rm yaml-cpp-release-0.5.3.tar.gz
+rm release-0.5.3.tar.gz
 
 # TCLAP
 curl -L "https://github.com/eile/tclap/archive/tclap-1-2-1-release-final.tar.gz" -o "tclap-1.2.1.tar.gz"
