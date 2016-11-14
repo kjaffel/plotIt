@@ -37,7 +37,7 @@ namespace plotIt {
   class plotIt {
     public:
       plotIt(const fs::path& outputPath);
-      void parseConfigurationFile(const std::string& file);
+      bool parseConfigurationFile(const std::string& file);
       void plotAll();
 
       std::vector<File>& getFiles() {

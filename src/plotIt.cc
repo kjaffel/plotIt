@@ -126,7 +126,7 @@ namespace plotIt {
       m_systematics.push_back(SystematicFactory::create(name, type, configuration));
   }
 
-  void plotIt::parseConfigurationFile(const std::string& file) {
+  bool plotIt::parseConfigurationFile(const std::string& file) {
     YAML::Node f = YAML::LoadFile(file);
 
     if (CommandLineCfg::get().verbose) {
@@ -382,6 +382,9 @@ namespace plotIt {
       file.id = process_id++;
       m_files.push_back(file);
     }
+
+    if (! expandFiles())
+        return false;
 
     std::sort(m_files.begin(), m_files.end(), [](const File& a, const File& b) {
       return a.order < b.order;
@@ -676,6 +679,8 @@ namespace plotIt {
     if (CommandLineCfg::get().verbose) {
         std::cout << " done." << std::endl;
     }
+
+    return true;
   }
 
   void plotIt::parseLumiLabel() {
@@ -1464,10 +1469,13 @@ namespace plotIt {
 
     for (File& file: m_files) {
       std::vector<std::string> matchedFiles = glob(file.path);
+      if (matchedFiles.empty()) {
+          std::cerr << "Error: no files matching '" << file.path << "' (either the file does not exist, or the expression does not match any file)" << std::endl;
+          return false;
+      }
       for (std::string& matchedFile: matchedFiles) {
         File f = file;
         f.path = matchedFile;
-        //std::cout << file.path << " matches to " << f.path << std::endl;
 
         files.push_back(f);
       }
@@ -1660,7 +1668,9 @@ int main(int argc, char** argv) {
     CommandLineCfg::get().systematicsBreakdown = systematicsBreakdownArg.getValue();
 
     plotIt::plotIt p(outputPath);
-    p.parseConfigurationFile(configFileArg.getValue());
+    if (!p.parseConfigurationFile(configFileArg.getValue()))
+        return 1;
+
     p.plotAll();
 
   } catch (TCLAP::ArgException &e) {
