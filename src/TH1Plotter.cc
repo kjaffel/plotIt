@@ -246,7 +246,8 @@ namespace plotIt {
     if (plot.no_data || ((h_data.get()) && !h_data->GetSumOfWeights()))
       h_data.reset();
 
-    if ((mc_histo_stat_only.get() && !mc_histo_stat_only->GetSumOfWeights())) {
+    // Ensure there's MC events
+    if (mc_stack && !mc_stack->GetHists()) {
       mc_histo_stat_only.reset();
       mc_stack.reset();
     }
@@ -504,6 +505,7 @@ namespace plotIt {
 
       // Clear all the possible stats box remaining
       mc_stack->GetHistogram()->SetStats(false);
+
       TIter next(mc_stack->GetHists());
       TH1* h = nullptr;
       while ((h = static_cast<TH1*>(next()))) {
