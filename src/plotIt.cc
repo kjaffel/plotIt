@@ -27,7 +27,6 @@
 
 #include "tclap/CmdLine.h"
 
-#include <boost/regex.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -57,6 +56,16 @@ static Dummy foo;
 
 namespace plotIt {
 
+  std::string applyRenaming(const std::vector<RenameOp>& ops, const std::string input) {
+      std::string result = input;
+
+      for (const auto& op: ops) {
+          result = std::regex_replace(result, op.from, op.to, std::regex_constants::format_sed);
+      }
+
+      return result;
+  }
+
   plotIt::plotIt(const fs::path& outputPath):
     m_outputPath(outputPath) {
 
@@ -71,26 +80,42 @@ namespace plotIt {
   // Replace the "include" fields by the content they point to
   void plotIt::parseIncludes(YAML::Node& node) {
 
+
     if (node["include"]) {
         std::vector<std::string> files = node["include"].as<std::vector<std::string>>();
-        node.remove("include");
 
+        YAML::Node merged_node;
+
+        bool first_file = true;
         for (std::string& file: files) {
           YAML::Node root = YAML::LoadFile(file);
 
+          if (first_file) {
+            first_file = false;
+            // Set 'node' to the same type as 'root'
+          }
+
           for (YAML::const_iterator it = root.begin(); it != root.end(); ++it) {
-            node[it->first.as<std::string>()] = it->second;
+            if (root.Type() == YAML::NodeType::Map) {
+                merged_node[it->first.as<std::string>()] = it->second;
+            } else {
+                merged_node.push_back(*it);
+            }
           }
         }
+
+        node = merged_node;
 
         if (node["include"])
             parseIncludes(node);
     }
 
-    for(YAML::iterator it = node.begin(); it != node.end(); ++it) {
-      if (it->second.Type() == YAML::NodeType::Map)
+    for (YAML::iterator it = node.begin(); it != node.end(); ++it) {
+      if (it->second.Type() == YAML::NodeType::Map) {
           parseIncludes(it->second);
+      }
     }
+
   }
 
   void plotIt::parseSystematicsNode(const YAML::Node& node) {
@@ -124,6 +149,70 @@ namespace plotIt {
       }
 
       m_systematics.push_back(SystematicFactory::create(name, type, configuration));
+  }
+
+  void plotIt::parseFileNode(File& file, const YAML::Node& key, const YAML::Node& value) {
+
+      file.path = key.as<std::string>();
+      parseFileNode(file, value);
+  }
+
+  void plotIt::parseFileNode(File& file, const YAML::Node& node) {
+
+      if (node["file"]) {
+          file.path = node["file"].as<std::string>();
+      }
+
+      // Normalize path
+      fs::path root = fs::path(m_config.root);
+      fs::path path = fs::path(file.path);
+      file.path = (root / path).string();
+
+      if (node["pretty-name"]) {
+        file.pretty_name = node["pretty-name"].as<std::string>();
+      } else {
+        file.pretty_name = path.stem().native();
+      }
+
+      if (node["type"]) {
+        std::string type = node["type"].as<std::string>();
+        file.type = string_to_type(type);
+      }
+
+      if (node["scale"])
+        file.scale = node["scale"].as<float>();
+
+      if (node["cross-section"])
+        file.cross_section = node["cross-section"].as<float>();
+
+      if (node["branching-ratio"])
+        file.branching_ratio = node["branching-ratio"].as<float>();
+
+      if (node["generated-events"])
+        file.generated_events = node["generated-events"].as<float>();
+
+      if (node["order"])
+        file.order = node["order"].as<int16_t>();
+
+      if (node["group"])
+        file.legend_group = node["group"].as<std::string>();
+
+      if (node["yields-group"])
+        file.yields_group = node["yields-group"].as<std::string>();
+
+      if (node["rename"]) {
+          const auto& rename_node = node["rename"];
+          for (YAML::const_iterator it = rename_node.begin(); it != rename_node.end(); ++it) {
+              const YAML::Node& rename_op_node = *it;
+              RenameOp op;
+              op.from = std::regex(rename_op_node["from"].as<std::string>(), std::regex::extended);
+              op.to = rename_op_node["to"].as<std::string>();
+              file.renaming_ops.push_back(op);
+          }
+      }
+
+      file.plot_style = std::make_shared<PlotStyle>();
+      file.plot_style->loadFromYAML(node, file.type);
   }
 
   bool plotIt::parseConfigurationFile(const std::string& file) {
@@ -335,52 +424,14 @@ namespace plotIt {
 
     size_t process_id = 0;
     for (YAML::const_iterator it = files.begin(); it != files.end(); ++it) {
-      File file;
+        File file;
+        if (files.Type() == YAML::NodeType::Map)
+            parseFileNode(file, it->first, it->second);
+        else
+            parseFileNode(file, *it);
 
-      file.path = it->first.as<std::string>();
-      fs::path root = fs::path(m_config.root);
-      fs::path path = fs::path(file.path);
-      file.path = (root / path).string();
-
-      YAML::Node node = it->second;
-
-      if (node["pretty-name"]) {
-        file.pretty_name = node["pretty-name"].as<std::string>();
-      } else {
-        file.pretty_name = path.stem().native();
-      }
-
-      if (node["type"]) {
-        std::string type = node["type"].as<std::string>();
-        file.type = string_to_type(type);
-      }
-
-      if (node["scale"])
-        file.scale = node["scale"].as<float>();
-
-      if (node["cross-section"])
-        file.cross_section = node["cross-section"].as<float>();
-
-      if (node["branching-ratio"])
-        file.branching_ratio = node["branching-ratio"].as<float>();
-
-      if (node["generated-events"])
-        file.generated_events = node["generated-events"].as<float>();
-
-      if (node["order"])
-        file.order = node["order"].as<int16_t>();
-
-      if (node["group"])
-        file.legend_group = node["group"].as<std::string>();
-
-      if (node["yields-group"])
-        file.yields_group = node["yields-group"].as<std::string>();
-
-      file.plot_style = std::make_shared<PlotStyle>();
-      file.plot_style->loadFromYAML(node, file.type);
-
-      file.id = process_id++;
-      m_files.push_back(file);
+        file.id = process_id++;
+        m_files.push_back(file);
     }
 
     if (! expandFiles())
@@ -1420,7 +1471,13 @@ namespace plotIt {
     file.systematics_cache.clear();
 
     for (const auto& plot: plots) {
-      TObject* obj = file.handle->Get(plot.name.c_str());
+
+      std::string plot_name = plot.name;
+
+      // Rename plot name according to user's transformations
+      plot_name = applyRenaming(file.renaming_ops, plot_name);
+
+      TObject* obj = file.handle->Get(plot_name.c_str());
 
       if (obj) {
         std::shared_ptr<TObject> cloned_obj(obj->Clone());
@@ -1439,7 +1496,7 @@ namespace plotIt {
       }
 
       // Should not be possible!
-      std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
+      std::cout << "Error: object '" << plot_name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
       return false;
     }
 

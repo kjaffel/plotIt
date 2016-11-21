@@ -114,7 +114,12 @@ namespace plotIt {
     std::string legend_style;
     int16_t legend_order = 0;
 
-    void loadFromYAML(YAML::Node& node, Type type);
+    void loadFromYAML(const YAML::Node& node, Type type);
+  };
+
+  struct RenameOp {
+      std::regex from;
+      std::string to;
   };
 
   struct File {
@@ -146,6 +151,9 @@ namespace plotIt {
 
     std::shared_ptr<TFile> handle;
     std::map<std::string, std::shared_ptr<TFile>> friend_handles;
+
+    // Renaming
+    std::vector<RenameOp> renaming_ops;
   };
 
   struct Group {

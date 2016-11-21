@@ -6,7 +6,7 @@
 #include <TLegendEntry.h>
 
 namespace plotIt {
-  void PlotStyle::loadFromYAML(YAML::Node& node, Type type) {
+  void PlotStyle::loadFromYAML(const YAML::Node& node, Type type) {
     if (node["legend"])
       legend = node["legend"].as<std::string>();
 
