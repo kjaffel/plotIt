@@ -133,6 +133,10 @@ namespace plotIt {
     float generated_events = 1.;
     float scale = 1.;
 
+    // Only MC files with the same stack index will be
+    // merged together
+    int64_t stack_index = 0;
+
     std::shared_ptr<PlotStyle> plot_style;
     std::string legend_group;
     std::string yields_group;

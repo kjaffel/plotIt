@@ -375,3 +375,49 @@ class plotItTestCase(plotItSimpleTestCase):
                 os.path.join(self.output_folder.name, 'histo1_logy.pdf'),
                 get_golden_file('default_configuration_blinded_range_logy.pdf')
                 )
+
+    def test_multi_stacks(self):
+        configuration = get_configuration()
+
+        # Remove data
+        del configuration['files']['data.root']
+
+        configuration['files']['MC_sample1.root']['stack-index'] = 0
+        configuration['files']['MC_sample2.root']['stack-index'] = 1
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_multi_stacks.pdf')
+                )
+
+        configuration['files']['MC_sample1.root']['stack-index'] = 1
+        configuration['files']['MC_sample2.root']['stack-index'] = 0
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_multi_stacks_reverse_ordering.pdf')
+                )
+
+        configuration['files']['MC_sample1.root']['stack-index'] = 0
+        configuration['files']['MC_sample2.root']['stack-index'] = 1
+
+        configuration['files']['MC_sample1.root']['fill-type'] = 0
+        configuration['files']['MC_sample1.root']['line-type'] = 1
+        configuration['files']['MC_sample1.root']['line-width'] = 2
+        configuration['files']['MC_sample1.root']['legend-style'] = 'l'
+
+        configuration['files']['MC_sample2.root']['fill-type'] = 0
+        configuration['files']['MC_sample2.root']['line-type'] = 1
+        configuration['files']['MC_sample2.root']['line-width'] = 2
+        configuration['files']['MC_sample2.root']['legend-style'] = 'l'
+
+        self.run_plotit(configuration)
+
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_multi_stacks_line_type.pdf')
+                )

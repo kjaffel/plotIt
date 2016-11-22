@@ -200,6 +200,9 @@ namespace plotIt {
       if (node["yields-group"])
         file.yields_group = node["yields-group"].as<std::string>();
 
+      if (node["stack-index"])
+        file.stack_index = node["stack-index"].as<int64_t>();
+
       if (node["rename"]) {
           const auto& rename_node = node["rename"];
           for (YAML::const_iterator it = rename_node.begin(); it != rename_node.end(); ++it) {
