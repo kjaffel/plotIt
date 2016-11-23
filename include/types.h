@@ -114,7 +114,12 @@ namespace plotIt {
     std::string legend_style;
     int16_t legend_order = 0;
 
-    void loadFromYAML(YAML::Node& node, Type type);
+    void loadFromYAML(const YAML::Node& node, Type type);
+  };
+
+  struct RenameOp {
+      std::regex from;
+      std::string to;
   };
 
   struct File {
@@ -127,6 +132,10 @@ namespace plotIt {
     float branching_ratio = 1.;
     float generated_events = 1.;
     float scale = 1.;
+
+    // Only MC files with the same stack index will be
+    // merged together
+    int64_t stack_index = 0;
 
     std::shared_ptr<PlotStyle> plot_style;
     std::string legend_group;
@@ -146,6 +155,9 @@ namespace plotIt {
 
     std::shared_ptr<TFile> handle;
     std::map<std::string, std::shared_ptr<TFile>> friend_handles;
+
+    // Renaming
+    std::vector<RenameOp> renaming_ops;
   };
 
   struct Group {

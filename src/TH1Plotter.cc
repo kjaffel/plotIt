@@ -63,6 +63,213 @@ namespace plotIt {
     return object.InheritsFrom("TH1");
   }
 
+  TH1Plotter::Stacks TH1Plotter::buildStacks() {
+      std::set<int64_t> indices;
+
+      for (const File& file: m_plotIt.getFiles()) {
+          if (file.type == MC)
+              indices.emplace(file.stack_index);
+      }
+
+      Stacks stacks;
+      for (auto index: indices) {
+          auto stack = buildStack(index);
+          if (stack.stack)
+              stacks.push_back(std::make_pair(index, stack));
+      }
+
+      return stacks;
+  }
+
+  TH1Plotter::Stack TH1Plotter::buildStack(int64_t index) {
+
+      std::shared_ptr<THStack> stack;
+      std::shared_ptr<TH1> histo_merged;
+
+      std::string stack_name = "mc_stack_" + std::to_string(index);
+
+      // First pass. Merged all member of a group into a single
+      // histogram.
+      // Key is group name, value is group histogram
+      std::vector<std::pair<std::string, std::shared_ptr<TH1>>> group_histograms;
+      for (File& file: m_plotIt.getFiles()) {
+          if (file.type != MC)
+              continue;
+
+          if (file.stack_index != index)
+              continue;
+
+          if (file.legend_group.empty())
+              continue;
+
+          auto it = std::find_if(group_histograms.begin(), group_histograms.end(), [&file](const std::pair<std::string, std::shared_ptr<TH1>>& item) {
+                  return item.first == file.legend_group;
+                  });
+
+          TH1* nominal = dynamic_cast<TH1*>(file.object);
+
+          // Do not bother with histograms with no entries
+          if (nominal->GetEntries() == 0) {
+              continue;
+          }
+
+          if (it == group_histograms.end()) {
+              std::string name = "group_histo_" + file.legend_group + "_" + stack_name;
+              std::shared_ptr<TH1> h(dynamic_cast<TH1*>(nominal->Clone(name.c_str())));
+              h->SetDirectory(nullptr);
+              group_histograms.push_back(std::make_pair(file.legend_group, h));
+          } else {
+              it->second->Add(nominal);
+          }
+      }
+
+      for (File& file: m_plotIt.getFiles()) {
+          if (file.type != MC)
+              continue;
+
+          if (file.stack_index != index)
+              continue;
+
+          TH1* nominal = dynamic_cast<TH1*>(file.object);
+
+          // Do not bother with histograms with no entries
+          if (file.legend_group.empty() && nominal->GetEntries() == 0)
+              continue;
+
+          if (!stack) {
+              stack = std::make_shared<THStack>(stack_name.c_str(), stack_name.c_str());
+              TemporaryPool::get().add(stack);
+          }
+
+          // Try to find if this file is a member of a group
+          // If it is, then use the merged histogram built above, but only for
+          // the first file.
+          auto it = std::find_if(group_histograms.begin(), group_histograms.end(), [&file](const std::pair<std::string, std::shared_ptr<TH1>>& item) {
+                  return item.first == file.legend_group;
+                  });
+
+          if (!file.legend_group.empty() && it == group_histograms.end()) {
+              // The group histogram has already been added to the stack, so
+              // skip to the next one
+              continue;
+          } else if (it != group_histograms.end()) {
+              auto n = it->second;
+              TemporaryPool::get().add(n);
+
+              nominal = n.get();
+
+              // Since we will add this group histogram to the stack
+              // remove it from the pool to avoid double addition
+              group_histograms.erase(it);
+          }
+
+          stack->Add(nominal, m_plotIt.getPlotStyle(file)->drawing_options.c_str());
+
+          if (histo_merged) {
+              histo_merged->Add(nominal);
+          } else {
+              std::string name = "mc_stat_only_" + stack_name;
+              histo_merged.reset( dynamic_cast<TH1*>(nominal->Clone(name.c_str())) );
+              histo_merged->SetDirectory(nullptr);
+          }
+
+      }
+
+      // Ensure there's MC events
+      if (stack && !stack->GetHists()) {
+          histo_merged.reset();
+          stack.reset();
+      }
+
+      Stack s {stack, histo_merged};
+
+      return s;
+  }
+
+  void TH1Plotter::computeSystematics(int64_t index, Stack& stack, Summary& summary) {
+
+      // Key is systematics name, value is the combined systematics value for each bin
+      std::map<std::string, std::vector<float>> combined_systematics_map;
+
+      for (File& file: m_plotIt.getFiles()) {
+          if (file.type == DATA || file.systematics->size() == 0)
+              continue;
+
+          if (file.type == MC && file.stack_index != index)
+              continue;
+
+          for (auto& syst: *file.systematics) {
+
+              std::vector<float>* combined_systematics;
+              auto map_it = combined_systematics_map.find(syst.name());
+
+              if (map_it == combined_systematics_map.end()) {
+                  combined_systematics = &combined_systematics_map[syst.name()];
+                  combined_systematics->resize(stack.syst_only->GetNbinsX(), 0);
+              } else {
+                  combined_systematics = &map_it->second;
+              }
+
+              TH1* nominal_shape = static_cast<TH1*>(syst.nominal_shape.get());
+              TH1* up_shape = static_cast<TH1*>(syst.up_shape.get());
+              TH1* down_shape = static_cast<TH1*>(syst.down_shape.get());
+
+              if (! nominal_shape || ! up_shape || ! down_shape)
+                  continue;
+
+              float total_syst_error = 0;
+              // Systematics in each bin are fully correlated, as they come either from
+              // a global variation, or for a shape variation. The total systematics error
+              // is simply for sum of all errors in each bins
+              //
+              // However, we consider that different systematics in the same bin are totaly
+              // uncorrelated. The total systematics errors is then the quadratic sum.
+              for (uint32_t i = 1; i <= (uint32_t) stack.syst_only->GetNbinsX(); i++) {
+                  float syst_error_up = std::abs(up_shape->GetBinContent(i) - nominal_shape->GetBinContent(i));
+                  float syst_error_down = std::abs(nominal_shape->GetBinContent(i) - down_shape->GetBinContent(i));
+
+                  // FIXME: Add support for asymetric errors
+                  float syst_error = std::max(syst_error_up, syst_error_down);
+
+                  total_syst_error += syst_error;
+
+                  // Only propagate uncertainties for MC, not signal
+                  if (file.type == MC)
+                      (*combined_systematics)[i - 1] += syst_error;
+              }
+
+
+              SummaryItem summary_item;
+              summary_item.process_id = file.id;
+              summary_item.name = syst.prettyName();
+              summary_item.events_uncertainty = total_syst_error;
+
+              summary.addSystematics(file.type, file.id, summary_item);
+          }
+      }
+
+      // Combine all systematics in one
+      // Consider that all the systematics are not correlated
+      for (auto& combined_systematics: combined_systematics_map) {
+          for (size_t i = 1; i <= (size_t) stack.syst_only->GetNbinsX(); i++) {
+              float total_error = stack.syst_only->GetBinError(i);
+              stack.syst_only->SetBinError(i, std::sqrt(total_error * total_error + combined_systematics.second[i - 1] * combined_systematics.second[i - 1]));
+          }
+      }
+
+      // Propagate syst errors to the stat + syst histogram
+      for (uint32_t i = 1; i <= (uint32_t) stack.syst_only->GetNbinsX(); i++) {
+          float syst_error = stack.syst_only->GetBinError(i);
+          float stat_error = stack.stat_only->GetBinError(i);
+          stack.stat_and_syst->SetBinError(i, std::sqrt(syst_error * syst_error + stat_error * stat_error));
+      }
+  }
+
+  void TH1Plotter::computeSystematics(Stacks& stacks, Summary& summary) {
+      for (auto& stack: stacks)
+          computeSystematics(stack.first, stack.second, summary);
+  }
+
   boost::optional<Summary> TH1Plotter::plot(TCanvas& c, Plot& plot) {
     c.cd();
 
@@ -147,88 +354,13 @@ namespace plotIt {
       }
     }
 
-    // Build a THStack for MC files and a vector for signal
-    float mcWeight = 0;
-    std::shared_ptr<THStack> mc_stack;
-    std::shared_ptr<TH1> mc_histo_stat_only;
-    std::shared_ptr<TH1> mc_histo_syst_only;
-    std::shared_ptr<TH1> mc_histo_stat_syst;
-
     std::shared_ptr<TH1> h_data;
     std::string data_drawing_options;
 
     std::vector<File> signal_files;
 
-    // First pass. Create one histogram per group
-    // Key is group name, value is group histogram
-    std::vector<std::pair<std::string, std::shared_ptr<TH1>>> group_histograms;
     for (File& file: m_plotIt.getFiles()) {
-        if (file.type != MC)
-            continue;
-
-        if (file.legend_group.empty())
-            continue;
-
-        auto it = std::find_if(group_histograms.begin(), group_histograms.end(), [&file](const std::pair<std::string, std::shared_ptr<TH1>>& item) {
-            return item.first == file.legend_group;
-        });
-
-        TH1* nominal = dynamic_cast<TH1*>(file.object);
-
-        // Do not bother with histograms with no entries
-        if (nominal->GetEntries() == 0)
-            continue;
-
-        if (it == group_histograms.end()) {
-            std::shared_ptr<TH1> h(dynamic_cast<TH1*>(nominal->Clone()));
-            h->SetDirectory(nullptr);
-            group_histograms.push_back(std::make_pair(file.legend_group, h));
-        } else {
-            it->second->Add(nominal);
-        }
-    }
-
-    for (File& file: m_plotIt.getFiles()) {
-      if (file.type == MC) {
-
-        TH1* nominal = dynamic_cast<TH1*>(file.object);
-
-        // Do not bother with histograms with no entries
-        if (file.legend_group.empty() && nominal->GetEntries() == 0)
-            continue;
-
-        if (mc_stack.get() == nullptr)
-          mc_stack = std::make_shared<THStack>("mc_stack", "mc_stack");
-
-        auto it = std::find_if(group_histograms.begin(), group_histograms.end(), [&file](const std::pair<std::string, std::shared_ptr<TH1>>& item) {
-            return item.first == file.legend_group;
-        });
-
-        if (!file.legend_group.empty() && it == group_histograms.end()) {
-            // The group histogram has already been added to the stack, so
-            // skip to the next one
-            continue;
-        } else if (it != group_histograms.end()) {
-            auto n = it->second;
-            TemporaryPool::get().add(n);
-
-            nominal = n.get();
-
-            // Since we will add this group histogram to the stack
-            // remove it from the pool to avoid double addition
-            group_histograms.erase(it);
-        }
-
-        mc_stack->Add(nominal, m_plotIt.getPlotStyle(file)->drawing_options.c_str());
-        if (mc_histo_stat_only.get()) {
-          mc_histo_stat_only->Add(nominal);
-        } else {
-          mc_histo_stat_only.reset( dynamic_cast<TH1*>(nominal->Clone()) );
-          mc_histo_stat_only->SetDirectory(nullptr);
-        }
-        mcWeight += nominal->GetSumOfWeights();
-
-      } else if (file.type == SIGNAL) {
+      if (file.type == SIGNAL) {
         signal_files.push_back(file);
       } else if (file.type == DATA) {
         if (! h_data.get()) {
@@ -243,29 +375,40 @@ namespace plotIt {
       }
     }
 
+    auto mc_stacks = buildStacks();
+
     if (plot.no_data || ((h_data.get()) && !h_data->GetSumOfWeights()))
       h_data.reset();
 
-    // Ensure there's MC events
-    if (mc_stack && !mc_stack->GetHists()) {
-      mc_histo_stat_only.reset();
-      mc_stack.reset();
-    }
+    bool has_data = h_data.get() != nullptr;
+    bool has_mc = !mc_stacks.empty();
+
+    bool no_systematics = false;
 
     if (plot.normalized) {
-      // Normalized each plot
-      for (File& file: m_plotIt.getFiles()) {
-        TH1* h = dynamic_cast<TH1*>(file.object);
-        if (file.type == MC) {
-          h->Scale(1. / fabs(mcWeight));
-        } else if (file.type == SIGNAL) {
-          h->Scale(1. / fabs(h->GetSumOfWeights()));
+        // Normalize each plot
+        for (File& file: m_plotIt.getFiles()) {
+            if (file.type == SIGNAL) {
+                TH1* h = dynamic_cast<TH1*>(file.object);
+                h->Scale(1. / fabs(h->GetSumOfWeights()));
+            }
         }
-      }
 
-      if (h_data.get()) {
-        h_data->Scale(1. / h_data->GetSumOfWeights());
-      }
+        if (h_data.get()) {
+            h_data->Scale(1. / h_data->GetSumOfWeights());
+        }
+
+        std::for_each(mc_stacks.begin(), mc_stacks.end(), [](TH1Plotter::Stacks::value_type& value) {
+            TIter next(value.second.stack->GetHists());
+            TH1* h = nullptr;
+            while ((h = static_cast<TH1*>(next()))) {
+                h->Scale(1. / std::abs(value.second.stat_only->GetSumOfWeights()));
+            }
+
+            value.second.stat_only->Scale(1. / std::abs(value.second.stat_only->GetSumOfWeights()));
+        });
+
+        no_systematics = true;
     }
 
     // Blind data if requested
@@ -273,7 +416,7 @@ namespace plotIt {
     // ROOT will show the marker, even with 'P'
     // The histogram is cloned, reset, and only the non-blinded bins are filled
     std::shared_ptr<TBox> m_blinded_area;
-    if (!CommandLineCfg::get().unblind && h_data.get() && plot.blinded_range.valid()) {
+    if (!CommandLineCfg::get().unblind && has_data && plot.blinded_range.valid()) {
         float start = plot.blinded_range.start;
         float end = plot.blinded_range.end;
 
@@ -297,109 +440,39 @@ namespace plotIt {
         delete clone;
     }
 
-    if (mc_histo_stat_only.get()) {
-      mc_histo_syst_only.reset(static_cast<TH1*>(mc_histo_stat_only->Clone()));
-      mc_histo_syst_only->SetDirectory(nullptr);
-      mc_histo_stat_syst.reset(static_cast<TH1*>(mc_histo_stat_only->Clone()));
-      mc_histo_stat_syst->SetDirectory(nullptr);
+    if (has_mc) {
+        // Prepare systematics histograms
+        std::for_each(mc_stacks.begin(), mc_stacks.end(), [&no_systematics](TH1Plotter::Stacks::value_type& value) {
 
-      // Clear statistical errors
-      for (uint32_t i = 1; i <= (uint32_t) mc_histo_syst_only->GetNbinsX(); i++) {
-        mc_histo_syst_only->SetBinError(i, 0);
-      }
+            value.second.stat_and_syst.reset(static_cast<TH1*>(
+                    value.second.stat_only->Clone()));
+            value.second.stat_and_syst->SetDirectory(nullptr);
+
+            if (! no_systematics) {
+                value.second.syst_only.reset(static_cast<TH1*>(value.second.stat_only->Clone()));
+                value.second.syst_only->SetDirectory(nullptr);
+
+                // Clear statistical errors
+                for (uint32_t i = 1; i <= (uint32_t) value.second.syst_only->GetNbinsX(); i++) {
+                  value.second.syst_only->SetBinError(i, 0);
+                }
+            }
+
+        });
     }
 
-    if (mc_histo_syst_only.get() && plot.show_errors) {
-      if (m_plotIt.getConfiguration().luminosity_error_percent > 0) {
-        // Loop over all bins, and add lumi error
-        for (uint32_t i = 1; i <= (uint32_t) mc_histo_syst_only->GetNbinsX(); i++) {
-          float error = mc_histo_syst_only->GetBinError(i);
-          float entries = mc_histo_syst_only->GetBinContent(i);
-          float lumi_error = entries * m_plotIt.getConfiguration().luminosity_error_percent;
-
-          mc_histo_syst_only->SetBinError(i, std::sqrt(error * error + lumi_error * lumi_error));
-        }
-      }
-
-      // Key is systematics name, value is the combined systematics value for each bin
-      std::map<std::string, std::vector<float>> combined_systematics_map;
-
-      for (File& file: m_plotIt.getFiles()) {
-        if (file.type == DATA || file.systematics->size() == 0)
-          continue;
-
-        for (auto& syst: *file.systematics) {
-
-          std::vector<float>* combined_systematics;
-          auto map_it = combined_systematics_map.find(syst.name());
-
-          if (map_it == combined_systematics_map.end()) {
-            combined_systematics = &combined_systematics_map[syst.name()];
-            combined_systematics->resize(mc_histo_syst_only->GetNbinsX(), 0);
-          } else {
-            combined_systematics = &map_it->second;
-          }
-
-          TH1* nominal_shape = static_cast<TH1*>(syst.nominal_shape.get());
-          TH1* up_shape = static_cast<TH1*>(syst.up_shape.get());
-          TH1* down_shape = static_cast<TH1*>(syst.down_shape.get());
-
-          if (! nominal_shape || ! up_shape || ! down_shape)
-              continue;
-
-          float total_syst_error = 0;
-          // Systematics in each bin are fully correlated, as they come either from
-          // a global variation, or for a shape variation. The total systematics error
-          // is simply for sum of all errors in each bins
-          //
-          // However, we consider that different systematics in the same bin are totaly
-          // uncorrelated. The total systematics errors is then the quadratic sum.
-          for (uint32_t i = 1; i <= (uint32_t) mc_histo_syst_only->GetNbinsX(); i++) {
-            float syst_error_up = std::abs(up_shape->GetBinContent(i) - nominal_shape->GetBinContent(i));
-            float syst_error_down = std::abs(nominal_shape->GetBinContent(i) - down_shape->GetBinContent(i));
-
-            // FIXME: Add support for asymetric errors
-            float syst_error = std::max(syst_error_up, syst_error_down);
-
-            total_syst_error += syst_error;
-
-            // Only propagate uncertainties for MC, not signal
-            if (file.type == MC)
-                (*combined_systematics)[i - 1] += syst_error;
-          }
-
-
-          SummaryItem summary;
-          summary.process_id = file.id;
-          summary.name = syst.prettyName();
-          summary.events_uncertainty = total_syst_error;
-
-          global_summary.addSystematics(file.type, file.id, summary);
-        }
-
-      }
-
-      // Combine all systematics in one
-      // Consider that all the systematics are not correlated
-      for (auto& combined_systematics: combined_systematics_map) {
-        for (size_t i = 1; i <= (size_t) mc_histo_syst_only->GetNbinsX(); i++) {
-          float total_error = mc_histo_syst_only->GetBinError(i);
-          mc_histo_syst_only->SetBinError(i, std::sqrt(total_error * total_error + combined_systematics.second[i - 1] * combined_systematics.second[i - 1]));
-        }
-      }
-
-      // Propagate syst errors to the stat + syst histogram
-      for (uint32_t i = 1; i <= (uint32_t) mc_histo_syst_only->GetNbinsX(); i++) {
-        float syst_error = mc_histo_syst_only->GetBinError(i);
-        float stat_error = mc_histo_stat_only->GetBinError(i);
-        mc_histo_stat_syst->SetBinError(i, std::sqrt(syst_error * syst_error + stat_error * stat_error));
-      }
+    if (!no_systematics && plot.show_errors) {
+        computeSystematics(mc_stacks, global_summary);
     }
 
     // Store all the histograms to draw, and find the one with the highest maximum
-    std::vector<std::pair<TObject*, std::string>> toDraw = { std::make_pair(mc_stack.get(), ""), std::make_pair(h_data.get(), data_drawing_options) };
+    std::vector<std::pair<TObject*, std::string>> toDraw = { std::make_pair(h_data.get(), data_drawing_options) };
     for (File& signal: signal_files) {
       toDraw.push_back(std::make_pair(signal.object, m_plotIt.getPlotStyle(signal)->drawing_options));
+    }
+
+    for (auto& mc_stack: mc_stacks) {
+        toDraw.push_back(std::make_pair(mc_stack.second.stack.get(), ""));
     }
 
     // Remove NULL items
@@ -428,8 +501,12 @@ namespace plotIt {
 
     float maximum = getMaximum(toDraw[0].first);
 
-    if ((!h_data.get() || !mc_histo_stat_only.get()))
-      plot.show_ratio = false;
+    if (!has_data || !has_mc)
+        plot.show_ratio = false;
+
+    if (plot.show_ratio && mc_stacks.size() != 1) {
+        plot.show_ratio = false;
+    }
 
     std::shared_ptr<TPad> hi_pad;
     std::shared_ptr<TPad> low_pad;
@@ -460,14 +537,20 @@ namespace plotIt {
     }
 
     // Take into account systematics for maximum
-    if (mc_histo_syst_only) {
-      float maximum_with_errors = 0;
-      for (size_t b = 1; b <= (size_t) mc_histo_stat_syst->GetNbinsX(); b++) {
-        float local_maximum = mc_histo_stat_syst->GetBinContent(b) + mc_histo_stat_syst->GetBinErrorUp(b);
-        maximum_with_errors = std::max(maximum_with_errors, local_maximum);
-      }
+    if (has_mc && !no_systematics) {
+        float maximum_with_errors = 0;
 
-      maximum = std::max(maximum, maximum_with_errors);
+        std::for_each(mc_stacks.begin(), mc_stacks.end(), [&maximum_with_errors](TH1Plotter::Stacks::value_type& value) {
+            float local_max = 0;
+            for (size_t b = 1; b <= (size_t) value.second.stat_and_syst->GetNbinsX(); b++) {
+                float m = value.second.stat_and_syst->GetBinContent(b) + value.second.stat_and_syst->GetBinErrorUp(b);
+                local_max = std::max(local_max, m);
+            }
+
+            maximum_with_errors = std::max(maximum_with_errors, local_max);
+        });
+
+        maximum = std::max(maximum, maximum_with_errors);
     }
 
     toDraw[0].first->Draw(toDraw[0].second.c_str());
@@ -500,30 +583,31 @@ namespace plotIt {
     }
 
     // First, draw MC
-    if (mc_stack.get()) {
-      mc_stack->Draw("same");
+    if (has_mc) {
 
-      // Clear all the possible stats box remaining
-      mc_stack->GetHistogram()->SetStats(false);
+        std::for_each(mc_stacks.begin(), mc_stacks.end(), [&plot, this](TH1Plotter::Stacks::value_type& value) {
+            value.second.stack->Draw("same");
 
-      TIter next(mc_stack->GetHists());
-      TH1* h = nullptr;
-      while ((h = static_cast<TH1*>(next()))) {
-          h->SetStats(false);
-      }
+            // Clear all the possible stats box remaining
+            value.second.stack->GetHistogram()->SetStats(false);
 
-      TemporaryPool::get().add(mc_stack);
-    }
+            TIter next(value.second.stack->GetHists());
+            TH1* h = nullptr;
+            while ((h = static_cast<TH1*>(next()))) {
+                h->SetStats(false);
+            }
 
-    // Then, if requested, errors
-    if (mc_histo_stat_syst.get() && plot.show_errors) {
-      mc_histo_stat_syst->SetMarkerSize(0);
-      mc_histo_stat_syst->SetMarkerStyle(0);
-      mc_histo_stat_syst->SetFillStyle(m_plotIt.getConfiguration().error_fill_style);
-      mc_histo_stat_syst->SetFillColor(m_plotIt.getConfiguration().error_fill_color);
+            // Then, if requested, errors
+            if (plot.show_errors) {
+                value.second.stat_and_syst->SetMarkerSize(0);
+                value.second.stat_and_syst->SetMarkerStyle(0);
+                value.second.stat_and_syst->SetFillStyle(m_plotIt.getConfiguration().error_fill_style);
+                value.second.stat_and_syst->SetFillColor(m_plotIt.getConfiguration().error_fill_color);
 
-      mc_histo_stat_syst->Draw("E2 same");
-      TemporaryPool::get().add(mc_histo_stat_syst);
+                value.second.stat_and_syst->Draw("E2 same");
+                TemporaryPool::get().add(value.second.stat_and_syst);
+            }
+        });
     }
 
     // Then signal
@@ -642,10 +726,12 @@ namespace plotIt {
 
       h_low_pad_axis->Draw();
 
-      std::shared_ptr<TGraphAsymmErrors> ratio = getRatio(h_data.get(), mc_histo_stat_only.get());
+      auto& mc_stack = mc_stacks.begin()->second;
+
+      std::shared_ptr<TGraphAsymmErrors> ratio = getRatio(h_data.get(), mc_stack.stat_only.get());
       ratio->Draw("P0 same");
 
-      // Compute systematic errors in %
+      // Compute systematic errors
       std::shared_ptr<TH1> h_systematics(static_cast<TH1*>(h_low_pad_axis->Clone()));
       h_systematics->SetDirectory(nullptr);
       h_systematics->Reset(); // Keep binning
@@ -654,11 +740,11 @@ namespace plotIt {
       bool has_syst = false;
       for (uint32_t i = 1; i <= (uint32_t) h_systematics->GetNbinsX(); i++) {
 
-        if (mc_histo_syst_only->GetBinContent(i) == 0 || mc_histo_syst_only->GetBinError(i) == 0)
+        if (mc_stack.syst_only->GetBinContent(i) == 0 || mc_stack.syst_only->GetBinError(i) == 0)
           continue;
 
         // relative error, delta X / X
-        float syst = mc_histo_syst_only->GetBinError(i) / mc_histo_syst_only->GetBinContent(i);
+        float syst = mc_stack.syst_only->GetBinError(i) / mc_stack.syst_only->GetBinContent(i);
 
         h_systematics->SetBinContent(i, 1);
         h_systematics->SetBinError(i, syst);
@@ -741,19 +827,23 @@ namespace plotIt {
       TemporaryPool::get().add(low_pad);
     }
 
-    if (plot.fit) {
+    if (has_mc && mc_stacks.size() == 1 && plot.fit) {
+
+      auto& mc_stack = mc_stacks.begin()->second;
+
       float xMin, xMax;
       if (plot.fit_range.valid()) {
         xMin = plot.fit_range.start;
         xMax = plot.fit_range.end;
       } else {
-        xMin = mc_stack->GetXaxis()->GetBinLowEdge(1);
-        xMax = mc_stack->GetXaxis()->GetBinUpEdge(mc_stack->GetXaxis()->GetLast());
+        xMin = mc_stack.stat_only->GetXaxis()->GetBinLowEdge(1);
+        xMax = mc_stack.stat_only->GetXaxis()->GetBinUpEdge(mc_stack.stat_only->GetXaxis()->GetLast());
       }
+
       std::shared_ptr<TF1> fct = std::make_shared<TF1>("fit_function", plot.fit_function.c_str(), xMin, xMax);
       fct->SetNpx(m_plotIt.getConfiguration().fit_n_points);
 
-      TH1* mc_hist = static_cast<TH1*>(mc_stack->GetStack()->At(mc_stack->GetNhists() - 1));
+      TH1* mc_hist = mc_stack.stat_only.get();
       TFitResultPtr fit_result = mc_hist->Fit(fct.get(), "SMRNEQ");
       if (fit_result->IsValid()) {
         std::shared_ptr<TH1> errors = std::make_shared<TH1D>("errors", "errors", m_plotIt.getConfiguration().fit_n_points, xMin, xMax);
