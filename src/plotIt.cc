@@ -1409,7 +1409,8 @@ namespace plotIt {
         std::cout << "Loading all plots..." << std::endl;
 
     for (File& file: m_files) {
-      loadAllObjects(file, plots);
+      if (! loadAllObjects(file, plots))
+          return;
 
       file.handle.reset();
       file.friend_handles.clear();
@@ -1498,7 +1499,6 @@ namespace plotIt {
         continue;
       }
 
-      // Should not be possible!
       std::cout << "Error: object '" << plot_name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
       return false;
     }
@@ -1513,8 +1513,9 @@ namespace plotIt {
     auto it = file.objects.find(plot.uid);
 
     if (it == file.objects.end()) {
-      std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
-      return false;
+      auto exception = std::runtime_error("Object not found in cache. It should be here since it was preloaded before. Object name: " + plot.name + " in " + file.path);
+      std::cerr << exception.what() << std::endl;
+      throw exception;
     }
 
     file.object = it->second;
