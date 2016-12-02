@@ -151,6 +151,26 @@ namespace plotIt {
       m_systematics.push_back(SystematicFactory::create(name, type, configuration));
   }
 
+  std::vector<RenameOp> parseRenameNode(const YAML::Node& node) {
+      std::vector<RenameOp> ops;
+
+      if (! node["rename"])
+          return ops;
+
+      const auto& rename_node = node["rename"];
+
+      for (YAML::const_iterator it = rename_node.begin(); it != rename_node.end(); ++it) {
+          const YAML::Node& rename_op_node = *it;
+          RenameOp op;
+          op.from = std::regex(rename_op_node["from"].as<std::string>(), std::regex::extended);
+          op.to = rename_op_node["to"].as<std::string>();
+
+          ops.push_back(op);
+      }
+
+      return ops;
+  }
+
   void plotIt::parseFileNode(File& file, const YAML::Node& key, const YAML::Node& value) {
 
       file.path = key.as<std::string>();
@@ -203,16 +223,7 @@ namespace plotIt {
       if (node["stack-index"])
         file.stack_index = node["stack-index"].as<int64_t>();
 
-      if (node["rename"]) {
-          const auto& rename_node = node["rename"];
-          for (YAML::const_iterator it = rename_node.begin(); it != rename_node.end(); ++it) {
-              const YAML::Node& rename_op_node = *it;
-              RenameOp op;
-              op.from = std::regex(rename_op_node["from"].as<std::string>(), std::regex::extended);
-              op.to = rename_op_node["to"].as<std::string>();
-              file.renaming_ops.push_back(op);
-          }
-      }
+      file.renaming_ops = parseRenameNode(node);
 
       file.plot_style = std::make_shared<PlotStyle>();
       file.plot_style->loadFromYAML(node, file.type);
@@ -684,6 +695,8 @@ namespace plotIt {
         plot.book_keeping_folder = node["book-keeping-folder"].as<std::string>();
       }
 
+      plot.renaming_ops = parseRenameNode(node);
+
       // Handle log
       std::vector<bool> logs_x;
       std::vector<bool> logs_y;
@@ -954,14 +967,19 @@ namespace plotIt {
       TemporaryPool::get().add(t);
     }
 
-    fs::path outputName = m_outputPath / plot_path;
+    fs::path rootDir = m_outputPath;
+    fs::path outputName = rootDir / plot_path;
+
     // Ensure path exists
     fs::create_directories(outputName.parent_path());
 
     for (const std::string& extension: plot.save_extensions) {
-      fs::path outputNameWithExtension = outputName.replace_extension(extension);
+      fs::path plotPathWithExtension = plot_path.replace_extension(extension);
 
-      c.SaveAs(outputNameWithExtension.c_str());
+      std::string finalPlotPathWithExtension = applyRenaming(plot.renaming_ops, plotPathWithExtension.native());
+      fs::path finalOutputName = rootDir / finalPlotPathWithExtension;
+
+      c.SaveAs(finalOutputName.c_str());
     }
 
     if (m_config.book_keeping_file) {
@@ -1409,7 +1427,8 @@ namespace plotIt {
         std::cout << "Loading all plots..." << std::endl;
 
     for (File& file: m_files) {
-      loadAllObjects(file, plots);
+      if (! loadAllObjects(file, plots))
+          return;
 
       file.handle.reset();
       file.friend_handles.clear();
@@ -1498,7 +1517,6 @@ namespace plotIt {
         continue;
       }
 
-      // Should not be possible!
       std::cout << "Error: object '" << plot_name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
       return false;
     }
@@ -1513,8 +1531,9 @@ namespace plotIt {
     auto it = file.objects.find(plot.uid);
 
     if (it == file.objects.end()) {
-      std::cout << "Error: object '" << plot.name << "' inheriting from '" << plot.inherits_from << "' not found in file '" << file.path << "'" << std::endl;
-      return false;
+      auto exception = std::runtime_error("Object not found in cache. It should be here since it was preloaded before. Object name: " + plot.name + " in " + file.path);
+      std::cerr << exception.what() << std::endl;
+      throw exception;
     }
 
     file.object = it->second;
