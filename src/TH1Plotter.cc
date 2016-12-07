@@ -553,14 +553,17 @@ namespace plotIt {
         maximum = std::max(maximum, maximum_with_errors);
     }
 
+    auto x_axis_range = plot.log_x ? plot.log_x_axis_range : plot.x_axis_range;
+    auto y_axis_range = plot.log_y ? plot.log_y_axis_range : plot.y_axis_range;
+
     toDraw[0].first->Draw(toDraw[0].second.c_str());
-    setRange(toDraw[0].first, plot.x_axis_range, plot.y_axis_range);
+    setRange(toDraw[0].first, x_axis_range, y_axis_range);
 
     float safe_margin = .20;
     if (plot.log_y)
       safe_margin = 8;
 
-    if (! plot.y_axis_range.valid()) {
+    if (! y_axis_range.valid()) {
       maximum *= 1 + safe_margin;
       setMaximum(toDraw[0].first, maximum);
 
@@ -578,8 +581,8 @@ namespace plotIt {
 
       setMinimum(toDraw[0].first, minimum);
     } else {
-        maximum = plot.y_axis_range.end;
-        minimum = plot.y_axis_range.start;
+        maximum = y_axis_range.end;
+        minimum = y_axis_range.start;
     }
 
     // First, draw MC
@@ -717,7 +720,7 @@ namespace plotIt {
       std::shared_ptr<TH1> h_low_pad_axis(static_cast<TH1*>(h_data->Clone()));
       h_low_pad_axis->SetDirectory(nullptr);
       h_low_pad_axis->Reset(); // Keep binning
-      setRange(h_low_pad_axis.get(), plot.x_axis_range, plot.ratio_y_axis_range);
+      setRange(h_low_pad_axis.get(), x_axis_range, plot.ratio_y_axis_range);
 
       setDefaultStyle(h_low_pad_axis.get(), 1. / 0.3333);
       h_low_pad_axis->GetYaxis()->SetTickLength(0.04);
@@ -755,7 +758,7 @@ namespace plotIt {
       if (has_syst) {
         h_systematics->SetFillStyle(m_plotIt.getConfiguration().error_fill_style);
         h_systematics->SetFillColor(m_plotIt.getConfiguration().error_fill_color);
-        setRange(h_systematics.get(), plot.x_axis_range, {});
+        setRange(h_systematics.get(), x_axis_range, {});
         h_systematics->Draw("E2");
       }
 
@@ -935,10 +938,12 @@ namespace plotIt {
     size_t first_bin = 1;
     size_t last_bin = h->GetNbinsX();
 
-    if (plot.x_axis_range.valid()) {
+    auto x_axis_range = plot.log_x ? plot.log_x_axis_range : plot.x_axis_range;
+
+    if (x_axis_range.valid()) {
       std::shared_ptr<TH1> copy(dynamic_cast<TH1*>(h->Clone()));
       copy->SetDirectory(nullptr);
-      copy->GetXaxis()->SetRangeUser(plot.x_axis_range.start, plot.x_axis_range.end);
+      copy->GetXaxis()->SetRangeUser(x_axis_range.start, x_axis_range.end);
 
       // Find first and last bin corresponding to the given range
       first_bin = copy->GetXaxis()->GetFirst();
