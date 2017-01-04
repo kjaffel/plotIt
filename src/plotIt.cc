@@ -598,9 +598,17 @@ namespace plotIt {
 
       if (node["x-axis-range"])
         plot.x_axis_range = node["x-axis-range"].as<Range>();
+      plot.log_x_axis_range = plot.x_axis_range;
+
+      if (node["log-x-axis-range"])
+        plot.log_x_axis_range = node["log-x-axis-range"].as<Range>();
 
       if (node["y-axis-range"])
         plot.y_axis_range = node["y-axis-range"].as<Range>();
+      plot.log_y_axis_range = plot.y_axis_range;
+
+      if (node["log-y-axis-range"])
+        plot.log_y_axis_range = node["log-y-axis-range"].as<Range>();
 
       if (node["ratio-y-axis-range"])
         plot.ratio_y_axis_range = node["ratio-y-axis-range"].as<Range>();
@@ -1471,7 +1479,10 @@ namespace plotIt {
         }
 
         for (const auto& plot: plots) {
-          std::shared_ptr<TH1> hist(new TH1F((plot.uid + std::to_string(file.id)).c_str(), "", plot.binning_x, plot.x_axis_range.start, plot.x_axis_range.end));
+
+          auto x_axis_range = plot.log_x ? plot.log_x_axis_range : plot.x_axis_range;
+
+          std::shared_ptr<TH1> hist(new TH1F((plot.uid + std::to_string(file.id)).c_str(), "", plot.binning_x, x_axis_range.start, x_axis_range.end));
           hist->SetDirectory(gROOT);
 
           file.chain->Draw((plot.draw_string + ">>" + plot.uid + std::to_string(file.id)).c_str(), plot.selection_string.c_str());
