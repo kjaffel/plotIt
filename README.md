@@ -13,8 +13,10 @@ cd plotIt/
 
 # Initialize the git remotes
 source firstsetup.sh 
-# Load the proper environment (a la CMSSW_7_4_10)
-source setup_sl6_env.sh
+# Load the proper environment
+cms_env # specific to ingrid, aka 'module purge; module load grid/grid_environment_sl6; module load crab/crab3; module load cms/cmssw;'
+cmsenv
+source setup_for_cms_env.sh
 
 # Build externals
 cd external
