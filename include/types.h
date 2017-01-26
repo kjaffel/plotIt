@@ -337,6 +337,8 @@ namespace plotIt {
 
     bool is_rescaled = false;
 
+    bool sort_by_yields = true;
+
     std::vector<Line> lines;
     
     void print() {

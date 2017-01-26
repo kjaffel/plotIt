@@ -63,7 +63,7 @@ namespace plotIt {
     return object.InheritsFrom("TH1");
   }
 
-  TH1Plotter::Stacks TH1Plotter::buildStacks() {
+  TH1Plotter::Stacks TH1Plotter::buildStacks(bool sortByYields) {
       std::set<int64_t> indices;
 
       for (const File& file: m_plotIt.getFiles()) {
@@ -73,7 +73,7 @@ namespace plotIt {
 
       Stacks stacks;
       for (auto index: indices) {
-          auto stack = buildStack(index);
+          auto stack = buildStack(index, sortByYields);
           if (stack.stack)
               stacks.push_back(std::make_pair(index, stack));
       }
@@ -81,7 +81,7 @@ namespace plotIt {
       return stacks;
   }
 
-  TH1Plotter::Stack TH1Plotter::buildStack(int64_t index) {
+  TH1Plotter::Stack TH1Plotter::buildStack(int64_t index, bool sortByYields) {
 
       std::shared_ptr<THStack> stack;
       std::shared_ptr<TH1> histo_merged;
@@ -123,6 +123,8 @@ namespace plotIt {
           }
       }
 
+      std::vector<std::tuple<TH1*, std::string>> histograms_in_stack;
+
       for (File& file: m_plotIt.getFiles()) {
           if (file.type != MC)
               continue;
@@ -163,7 +165,20 @@ namespace plotIt {
               group_histograms.erase(it);
           }
 
-          stack->Add(nominal, m_plotIt.getPlotStyle(file)->drawing_options.c_str());
+          histograms_in_stack.push_back(std::make_tuple(nominal, m_plotIt.getPlotStyle(file)->drawing_options));
+      }
+
+      // Sort histograms by yields
+      if (sortByYields) {
+          std::sort(histograms_in_stack.begin(), histograms_in_stack.end(),
+                  [](const std::tuple<TH1*, std::string>& a, const std::tuple<TH1*, std::string>& b) {
+                    return std::get<0>(a)->Integral() < std::get<0>(b)->Integral();
+                  });
+      }
+
+      for (const auto& t: histograms_in_stack) {
+          TH1* nominal = std::get<0>(t);
+          stack->Add(nominal, std::get<1>(t).c_str());
 
           if (histo_merged) {
               histo_merged->Add(nominal);
@@ -172,7 +187,6 @@ namespace plotIt {
               histo_merged.reset( dynamic_cast<TH1*>(nominal->Clone(name.c_str())) );
               histo_merged->SetDirectory(nullptr);
           }
-
       }
 
       // Ensure there's MC events
@@ -375,7 +389,7 @@ namespace plotIt {
       }
     }
 
-    auto mc_stacks = buildStacks();
+    auto mc_stacks = buildStacks(plot.sort_by_yields);
 
     if (plot.no_data || ((h_data.get()) && !h_data->GetSumOfWeights()))
       h_data.reset();
