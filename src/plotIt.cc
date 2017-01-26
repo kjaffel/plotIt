@@ -695,6 +695,10 @@ namespace plotIt {
 
       plot.renaming_ops = parseRenameNode(node);
 
+      if (node["sort-by-yields"]) {
+        plot.sort_by_yields = node["sort-by-yields"].as<bool>();
+      }
+
       // Handle log
       std::vector<bool> logs_x;
       std::vector<bool> logs_y;
