@@ -421,6 +421,14 @@ namespace plotIt {
 
       if (node["book-keeping-file"])
         m_config.book_keeping_file_name = node["book-keeping-file"].as<std::string>();
+
+      // Axis size
+      if (node["x-axis-label-size"])
+        m_config.x_axis_label_size = node["x-axis-label-size"].as<float>();
+
+      if (node["y-axis-label-size"])
+        m_config.y_axis_label_size = node["y-axis-label-size"].as<float>();
+
     }
 
     // Retrieve files/processes configuration
@@ -698,6 +706,17 @@ namespace plotIt {
       if (node["sort-by-yields"]) {
         plot.sort_by_yields = node["sort-by-yields"].as<bool>();
       }
+
+      // Axis size
+      if (node["x-axis-label-size"])
+        plot.x_axis_label_size = node["x-axis-label-size"].as<float>();
+      else
+        plot.x_axis_label_size = m_config.x_axis_label_size;
+
+      if (node["y-axis-label-size"])
+        plot.y_axis_label_size = node["y-axis-label-size"].as<float>();
+      else
+        plot.y_axis_label_size = m_config.y_axis_label_size;
 
       // Handle log
       std::vector<bool> logs_x;

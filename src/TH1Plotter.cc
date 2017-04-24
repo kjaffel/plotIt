@@ -642,7 +642,7 @@ namespace plotIt {
 
     // Set x and y axis titles, and default style
     for (auto& obj: toDraw) {
-      setDefaultStyle(obj.first, (plot.show_ratio) ? 0.6666 : 1.);
+      setDefaultStyle(obj.first, plot, (plot.show_ratio) ? 0.6666 : 1.);
       setAxisTitles(obj.first, plot);
     }
 
@@ -736,7 +736,7 @@ namespace plotIt {
       h_low_pad_axis->Reset(); // Keep binning
       setRange(h_low_pad_axis.get(), x_axis_range, plot.ratio_y_axis_range);
 
-      setDefaultStyle(h_low_pad_axis.get(), 1. / 0.3333);
+      setDefaultStyle(h_low_pad_axis.get(), plot, 3.);
       h_low_pad_axis->GetYaxis()->SetTickLength(0.04);
       h_low_pad_axis->GetYaxis()->SetNdivisions(505, true);
       h_low_pad_axis->GetXaxis()->SetTickLength(0.07);

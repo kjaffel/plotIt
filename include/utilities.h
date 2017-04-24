@@ -59,7 +59,7 @@ namespace plotIt {
   void setAxisTitles(TObject* object, Plot& plot);
 
   template<class T>
-    void setDefaultStyle(T* object, float topBottomScaleFactor) {
+    void setDefaultStyle(T* object, Plot& plot, float topBottomScaleFactor) {
 
       // Remove title
       object->SetBit(TH1::kNoTitle);
@@ -73,18 +73,19 @@ namespace plotIt {
       object->GetYaxis()->SetTitleOffset(2.5);
       object->GetYaxis()->SetLabelOffset(0.01);
       object->GetYaxis()->SetTickLength(0.03);
+      object->GetYaxis()->SetLabelSize(plot.y_axis_label_size);
 
       object->GetXaxis()->SetTitleOffset(1.5 * topBottomScaleFactor);
       object->GetXaxis()->SetLabelOffset(0.012 * topBottomScaleFactor);
       object->GetXaxis()->SetTickLength(0.03);
+      object->GetXaxis()->SetLabelSize(plot.x_axis_label_size);
 
       // No stats box
       object->SetStats(false);
       
     }
 
-  void setDefaultStyle(TObject* object, float topBottomScaleFactor);
-
+  void setDefaultStyle(TObject* object, Plot& plot, float topBottomScaleFactor);
 
   template<class T>
     void hideXTitle(T* object) {
