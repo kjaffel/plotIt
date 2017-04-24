@@ -131,8 +131,8 @@ namespace plotIt {
     CAST_AND_CALL(object, setAxisTitles, plot);
   }
 
-  void setDefaultStyle(TObject* object, float topBottomScaleFactor) {
-    CAST_TO_HIST_AND_CALL(object, setDefaultStyle, topBottomScaleFactor);
+  void setDefaultStyle(TObject* object, Plot& plot, float topBottomScaleFactor) {
+    CAST_TO_HIST_AND_CALL(object, setDefaultStyle, plot, topBottomScaleFactor);
   }
 
   void hideXTitle(TObject* object) {

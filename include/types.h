@@ -340,6 +340,10 @@ namespace plotIt {
     bool sort_by_yields = true;
 
     std::vector<Line> lines;
+
+    // Axis label size
+    float x_axis_label_size = LABEL_FONTSIZE;
+    float y_axis_label_size = LABEL_FONTSIZE;
     
     void print() {
       std::cout << "Plot '" << name << "'" << std::endl;
@@ -441,6 +445,10 @@ namespace plotIt {
 
     std::string book_keeping_file_name;
     std::shared_ptr<TFile> book_keeping_file;
+
+    // Axis label size
+    float x_axis_label_size = LABEL_FONTSIZE;
+    float y_axis_label_size = LABEL_FONTSIZE;
   };
 }
 
