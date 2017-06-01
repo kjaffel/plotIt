@@ -26,6 +26,11 @@ namespace plotIt {
     DATA
   };
 
+  enum Location {
+    TOP,
+    BOTTOM
+  };
+
   inline Type string_to_type(const std::string& type) {
       if (type == "signal")
           return SIGNAL;
@@ -245,6 +250,7 @@ namespace plotIt {
     Point end;
 
     boost::optional<LineStyle> style;
+    Location pad = TOP;
 
     bool operator==(const Line& other) {
       return ((start == other.start) && (end == other.end));

@@ -98,6 +98,12 @@ namespace plotIt {
       YAML::Node configuration = node;
       if (node.Type() == YAML::NodeType::Map) {
           style = LineStyle(node);
+          if (node["pad-location"]) {
+            std::string l = node["pad-location"].as<std::string>();
+            if (l == "bottom")
+              pad = BOTTOM;
+          }
+
           configuration = node["value"];
       }
 
