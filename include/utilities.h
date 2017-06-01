@@ -138,6 +138,16 @@ namespace plotIt {
   void setRange(TObject* object, const Range& x_range, const Range& y_range);
 
   template<class T>
+    void hideTicks(T* object, bool for_x, bool for_y) {
+      if (for_x)
+        object->GetXaxis()->SetTickLength(0);
+
+      if (for_y)
+        object->GetYaxis()->SetTickLength(0);
+    }
+  void hideTicks(TObject* object, bool for_x, bool for_y);
+
+  template<class T>
     Range getXRange(T* object) {
       Range range;
       range.start = object->GetXaxis()->GetBinLowEdge(object->GetXaxis()->GetFirst());

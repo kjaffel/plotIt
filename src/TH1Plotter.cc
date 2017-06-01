@@ -573,6 +573,8 @@ namespace plotIt {
     toDraw[0].first->Draw(toDraw[0].second.c_str());
     setRange(toDraw[0].first, x_axis_range, y_axis_range);
 
+    hideTicks(toDraw[0].first, plot.x_axis_hide_ticks, plot.y_axis_hide_ticks);
+
     float safe_margin = .20;
     if (plot.log_y)
       safe_margin = 8;
@@ -644,6 +646,7 @@ namespace plotIt {
     for (auto& obj: toDraw) {
       setDefaultStyle(obj.first, plot, (plot.show_ratio) ? 0.6666 : 1.);
       setAxisTitles(obj.first, plot);
+      hideTicks(obj.first, plot.x_axis_hide_ticks, plot.y_axis_hide_ticks);
     }
 
     gPad->Modified();
@@ -743,6 +746,8 @@ namespace plotIt {
       h_low_pad_axis->GetYaxis()->SetTickLength(0.04);
       h_low_pad_axis->GetYaxis()->SetNdivisions(505, true);
       h_low_pad_axis->GetXaxis()->SetTickLength(0.07);
+
+      hideTicks(h_low_pad_axis.get(), plot.x_axis_hide_ticks, plot.y_axis_hide_ticks);
 
       h_low_pad_axis->Draw();
 

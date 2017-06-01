@@ -350,6 +350,10 @@ namespace plotIt {
     // Axis label size
     float x_axis_label_size = LABEL_FONTSIZE;
     float y_axis_label_size = LABEL_FONTSIZE;
+
+    // Show or hide ticks for each axis
+    bool x_axis_hide_ticks = false;
+    bool y_axis_hide_ticks = false;
     
     void print() {
       std::cout << "Plot '" << name << "'" << std::endl;
