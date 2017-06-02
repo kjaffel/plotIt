@@ -573,6 +573,8 @@ namespace plotIt {
     toDraw[0].first->Draw(toDraw[0].second.c_str());
     setRange(toDraw[0].first, x_axis_range, y_axis_range);
 
+    hideTicks(toDraw[0].first, plot.x_axis_hide_ticks, plot.y_axis_hide_ticks);
+
     float safe_margin = .20;
     if (plot.log_y)
       safe_margin = 8;
@@ -644,6 +646,7 @@ namespace plotIt {
     for (auto& obj: toDraw) {
       setDefaultStyle(obj.first, plot, (plot.show_ratio) ? 0.6666 : 1.);
       setAxisTitles(obj.first, plot);
+      hideTicks(obj.first, plot.x_axis_hide_ticks, plot.y_axis_hide_ticks);
     }
 
     gPad->Modified();
@@ -689,12 +692,11 @@ namespace plotIt {
         blinded_area->Draw("same");
     }
 
-    // Draw all the requested lines for this plot
-    auto resolveLine = [&](Line& line) {
+    auto drawLine = [&](Line& line, TVirtualPad* pad) {
         Range x_range = getXRange(toDraw[0].first);
 
-        float y_range_start = gPad->GetUymin();
-        float y_range_end = gPad->GetUymax();
+        float y_range_start = pad->GetUymin();
+        float y_range_end = pad->GetUymax();
 
         if (std::isnan(line.start.x))
             line.start.x = x_range.start;
@@ -707,19 +709,23 @@ namespace plotIt {
 
         if (std::isnan(line.end.y))
             line.end.y = y_range_end;
+
+        std::shared_ptr<TLine> l(new TLine(line.start.x, line.start.y, line.end.x, line.end.y));
+        TemporaryPool::get().add(l);
+
+        l->SetLineColor(line.style->line_color);
+        l->SetLineWidth(line.style->line_width);
+        l->SetLineStyle(line.style->line_type);
+
+        l->Draw("same");
     };
 
     for (Line& line: plot.lines) {
-      resolveLine(line);
+      // Only keep TOP lines
+      if (line.pad != TOP)
+        continue;
 
-      std::shared_ptr<TLine> l(new TLine(line.start.x, line.start.y, line.end.x, line.end.y));
-      TemporaryPool::get().add(l);
-
-      l->SetLineColor(line.style->line_color);
-      l->SetLineWidth(line.style->line_width);
-      l->SetLineStyle(line.style->line_type);
-
-      l->Draw("same");
+      drawLine(line, hi_pad ? hi_pad.get() : gPad);
     }
 
     // Redraw only axis
@@ -740,6 +746,8 @@ namespace plotIt {
       h_low_pad_axis->GetYaxis()->SetTickLength(0.04);
       h_low_pad_axis->GetYaxis()->SetNdivisions(505, true);
       h_low_pad_axis->GetXaxis()->SetTickLength(0.07);
+
+      hideTicks(h_low_pad_axis.get(), plot.x_axis_hide_ticks, plot.y_axis_hide_ticks);
 
       h_low_pad_axis->Draw();
 
@@ -841,6 +849,17 @@ namespace plotIt {
 
       // Hide top pad label
       hideXTitle(toDraw[0].first);
+
+      low_pad->Modified();
+      low_pad->Update();
+
+      for (Line& line: plot.lines) {
+        // Only keep BOTTOM lines
+        if (line.pad != BOTTOM)
+          continue;
+
+        drawLine(line, low_pad.get());
+      }
 
       TemporaryPool::get().add(h_low_pad_axis);
       TemporaryPool::get().add(ratio);

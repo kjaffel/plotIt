@@ -722,6 +722,13 @@ namespace plotIt {
       else
         plot.y_axis_label_size = m_config.y_axis_label_size;
 
+      // Show or hide ticks
+      if (node["x-axis-hide-ticks"])
+        plot.x_axis_hide_ticks = node["x-axis-hide-ticks"].as<bool>();
+
+      if (node["y-axis-hide-ticks"])
+        plot.y_axis_hide_ticks = node["y-axis-hide-ticks"].as<bool>();
+
       // Handle log
       std::vector<bool> logs_x;
       std::vector<bool> logs_y;

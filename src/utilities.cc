@@ -165,6 +165,10 @@ namespace plotIt {
     CAST_AND_CALL(object, setRange, x_range, y_range);
   }
 
+  void hideTicks(TObject* object, bool for_x, bool for_y) {
+    CAST_AND_CALL(object, hideTicks, for_x, for_y);
+  }
+
   Range getXRange(TObject* object) {
     CAST_AND_RETURN(object, getXRange);
 

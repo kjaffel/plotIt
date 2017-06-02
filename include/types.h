@@ -26,6 +26,11 @@ namespace plotIt {
     DATA
   };
 
+  enum Location {
+    TOP,
+    BOTTOM
+  };
+
   inline Type string_to_type(const std::string& type) {
       if (type == "signal")
           return SIGNAL;
@@ -245,6 +250,7 @@ namespace plotIt {
     Point end;
 
     boost::optional<LineStyle> style;
+    Location pad = TOP;
 
     bool operator==(const Line& other) {
       return ((start == other.start) && (end == other.end));
@@ -344,6 +350,10 @@ namespace plotIt {
     // Axis label size
     float x_axis_label_size = LABEL_FONTSIZE;
     float y_axis_label_size = LABEL_FONTSIZE;
+
+    // Show or hide ticks for each axis
+    bool x_axis_hide_ticks = false;
+    bool y_axis_hide_ticks = false;
     
     void print() {
       std::cout << "Plot '" << name << "'" << std::endl;
