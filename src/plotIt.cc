@@ -62,7 +62,6 @@ namespace plotIt {
       createPlotters(*this);
 
       gErrorIgnoreLevel = kError;
-      m_style.reset(createStyle());
 
       TH1::AddDirectory(false);
     }
@@ -429,6 +428,11 @@ namespace plotIt {
       if (node["y-axis-label-size"])
         m_config.y_axis_label_size = node["y-axis-label-size"].as<float>();
 
+      if (node["x-axis-top-ticks"])
+        m_config.x_axis_top_ticks = node["x-axis-top-ticks"].as<bool>();
+
+      if (node["y-axis-right-ticks"])
+        m_config.y_axis_right_ticks = node["y-axis-right-ticks"].as<bool>();
     }
 
     // Retrieve files/processes configuration
@@ -1433,6 +1437,9 @@ namespace plotIt {
   }
 
   void plotIt::plotAll() {
+
+    m_style.reset(createStyle(m_config));
+
     // First, explode plots to match all glob patterns
 
     std::vector<Plot> plots;

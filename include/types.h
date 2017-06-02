@@ -449,6 +449,10 @@ namespace plotIt {
     // Axis label size
     float x_axis_label_size = LABEL_FONTSIZE;
     float y_axis_label_size = LABEL_FONTSIZE;
+
+    // Show or not opposite axis ticks
+    bool x_axis_top_ticks = true;
+    bool y_axis_right_ticks = true;
   };
 }
 

@@ -1,5 +1,6 @@
 #include <pool.h>
 #include <utilities.h>
+#include <types.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -10,7 +11,7 @@
 
 namespace plotIt {
 
-  TStyle* createStyle() {
+  TStyle* createStyle(const Configuration& config) {
     TStyle *style = new TStyle("style", "style");
 
     // For the canvas:
@@ -102,10 +103,11 @@ namespace plotIt {
 
     style->SetAxisColor(1, "XYZ");
     style->SetStripDecimals(kTRUE);
-    style->SetTickLength(0.03, "XYZ");
+    style->SetTickLength(0.02, "XYZ");
     style->SetNdivisions(510, "XYZ");
-    style->SetPadTickX(1);  // To get tick marks on the opposite side of the frame
-    style->SetPadTickY(1);
+
+    style->SetPadTickX(config.x_axis_top_ticks ? 1 : 0);  // To get tick marks on the opposite side of the frame
+    style->SetPadTickY(config.y_axis_right_ticks ? 1 : 0);
 
     style->SetOptLogx(0);
     style->SetOptLogy(0);

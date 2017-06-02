@@ -7,7 +7,9 @@
 #include <boost/format.hpp>
 
 namespace plotIt {
-  TStyle* createStyle();
+  struct Configuration;
+
+  TStyle* createStyle(const Configuration& config);
 
   boost::format get_formatter(const std::string format_string);
 
