@@ -753,6 +753,9 @@ namespace plotIt {
       h_systematics->SetDirectory(nullptr);
       h_systematics->Reset(); // Keep binning
       h_systematics->SetMarkerSize(0);
+      // Workaround a bug introduced in ROOT 6.08 causing the bin error to not reset to normal
+      // See https://sft.its.cern.ch/jira/browse/ROOT-8808 for more details
+      h_systematics->SetBinErrorOption(TH1::kNormal);
 
       bool has_syst = false;
       if (! no_systematics) {
