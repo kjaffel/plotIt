@@ -70,7 +70,6 @@ namespace plotIt {
       object->SetLabelSize(LABEL_FONTSIZE, "XYZ");
       object->SetTitleSize(TITLE_FONTSIZE, "XYZ");
 
-      object->GetYaxis()->SetTitle("Data / MC");
       object->GetYaxis()->SetNdivisions(510);
       object->GetYaxis()->SetTitleOffset(2.5);
       object->GetYaxis()->SetLabelOffset(0.01);
