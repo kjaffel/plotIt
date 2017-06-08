@@ -288,6 +288,7 @@ namespace plotIt {
     std::string y_axis = "Events";
     std::string y_axis_format;
     bool y_axis_show_zero = false;
+    std::string ratio_y_axis_title = "Data / MC";
 
     // Axis range
     Range x_axis_range;
@@ -405,6 +406,7 @@ namespace plotIt {
     float luminosity_error_percent = 0;
 
     std::string y_axis_format = "%1% / %2$.2f";
+    std::string ratio_y_axis_title = "Data / MC";
 
     int16_t error_fill_color = 42;
     int16_t error_fill_style = 3154;

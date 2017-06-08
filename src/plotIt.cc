@@ -391,6 +391,9 @@ namespace plotIt {
       if (node["y-axis-format"])
         m_config.y_axis_format = node["y-axis-format"].as<std::string>();
 
+      if (node["ratio-y-axis"])
+        m_config.ratio_y_axis_title = node["ratio-y-axis"].as<std::string>();
+
       if (node["mode"])
           m_config.mode = node["mode"].as<std::string>();
 
@@ -531,6 +534,11 @@ namespace plotIt {
 
       if (node["y-axis"])
         plot.y_axis = node["y-axis"].as<std::string>();
+
+      if (node["ratio-y-axis"])
+        plot.ratio_y_axis_title = node["ratio-y-axis"].as<std::string>();
+      else
+        plot.ratio_y_axis_title = m_config.ratio_y_axis_title;
 
       plot.y_axis_format = m_config.y_axis_format;
       if (node["y-axis-format"])
