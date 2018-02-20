@@ -297,6 +297,18 @@ namespace plotIt {
       if (node["height"])
         m_config.height = node["height"].as<float>();
 
+      if (node["margin-left"])
+        m_config.margin_left = node["margin-left"].as<float>();
+
+      if (node["margin-right"])
+        m_config.margin_right = node["margin-right"].as<float>();
+
+      if (node["margin-top"])
+        m_config.margin_top = node["margin-top"].as<float>();
+
+      if (node["margin-bottom"])
+        m_config.margin_bottom = node["margin-bottom"].as<float>();
+
       if (node["experiment"])
         m_config.experiment = node["experiment"].as<std::string>();
 
@@ -956,7 +968,7 @@ namespace plotIt {
 
     legend.Draw();
 
-    float topMargin = TOP_MARGIN;
+    float topMargin = m_config.margin_top;
     if (plot.show_ratio)
       topMargin /= .6666;
 
@@ -965,7 +977,7 @@ namespace plotIt {
 
     // Luminosity label
     if (m_config.lumi_label.length() > 0) {
-      std::shared_ptr<TPaveText> pt = std::make_shared<TPaveText>(LEFT_MARGIN, 1 - 0.5 * topMargin, 1 - RIGHT_MARGIN, 1, "brNDC");
+      std::shared_ptr<TPaveText> pt = std::make_shared<TPaveText>(m_config.margin_left, 1 - 0.5 * topMargin, 1 - m_config.margin_right, 1, "brNDC");
       TemporaryPool::get().add(pt);
 
       pt->SetFillStyle(0);
@@ -981,7 +993,7 @@ namespace plotIt {
 
     // Experiment
     if (m_config.experiment.length() > 0) {
-      std::shared_ptr<TPaveText> pt = std::make_shared<TPaveText>(LEFT_MARGIN, 1 - 0.5 * topMargin, 1 - RIGHT_MARGIN, 1, "brNDC");
+      std::shared_ptr<TPaveText> pt = std::make_shared<TPaveText>(m_config.margin_left, 1 - 0.5 * topMargin, 1 - m_config.margin_right, 1, "brNDC");
       TemporaryPool::get().add(pt);
 
       pt->SetFillStyle(0);
