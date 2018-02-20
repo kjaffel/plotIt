@@ -398,6 +398,10 @@ namespace plotIt {
   struct Configuration {
     float width = 800;
     float height = 800;
+    float margin_left = 0.17;
+    float margin_right = 0.03;
+    float margin_top = 0.05;
+    float margin_bottom = 0.13;
     float luminosity = -1;
     float scale = 1;
     bool no_lumi_rescaling = false;

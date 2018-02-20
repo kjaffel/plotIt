@@ -73,10 +73,10 @@ namespace plotIt {
     style->SetStatW(0.15);
 
     // Margins:
-    style->SetPadTopMargin(TOP_MARGIN);
-    style->SetPadBottomMargin(BOTTOM_MARGIN);
-    style->SetPadLeftMargin(LEFT_MARGIN);
-    style->SetPadRightMargin(RIGHT_MARGIN);
+    style->SetPadTopMargin(config.margin_top);
+    style->SetPadBottomMargin(config.margin_bottom);
+    style->SetPadLeftMargin(config.margin_left);
+    style->SetPadRightMargin(config.margin_right);
 
     // For the Global title:
     style->SetOptTitle(0);

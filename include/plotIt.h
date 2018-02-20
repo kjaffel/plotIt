@@ -44,7 +44,7 @@ namespace plotIt {
         return m_files;
       }
 
-      Configuration getConfiguration() const {
+      const Configuration& getConfiguration() const {
         return m_config;
       }
 

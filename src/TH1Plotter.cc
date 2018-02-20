@@ -527,17 +527,18 @@ namespace plotIt {
     if (plot.show_ratio) {
       hi_pad = std::make_shared<TPad>("pad_hi", "", 0., 0.33333, 1, 1);
       hi_pad->Draw();
-      hi_pad->SetTopMargin(TOP_MARGIN / .6666);
-      hi_pad->SetLeftMargin(LEFT_MARGIN);
+      const auto& config = m_plotIt.getConfiguration();
+      hi_pad->SetTopMargin(config.margin_top / .6666);
+      hi_pad->SetLeftMargin(config.margin_left);
       hi_pad->SetBottomMargin(0.015);
-      hi_pad->SetRightMargin(RIGHT_MARGIN);
+      hi_pad->SetRightMargin(config.margin_right);
 
       low_pad = std::make_shared<TPad>("pad_lo", "", 0., 0., 1, 0.33333);
       low_pad->Draw();
-      low_pad->SetLeftMargin(LEFT_MARGIN);
+      low_pad->SetLeftMargin(config.margin_left);
       low_pad->SetTopMargin(1.);
-      low_pad->SetBottomMargin(BOTTOM_MARGIN / .3333);
-      low_pad->SetRightMargin(RIGHT_MARGIN);
+      low_pad->SetBottomMargin(config.margin_bottom / .3333);
+      low_pad->SetRightMargin(config.margin_right);
       low_pad->SetTickx(1);
 
       hi_pad->cd();
