@@ -655,8 +655,10 @@ namespace plotIt {
 
     // We have the plot range. Compute the shaded area corresponding to the blinded area, if any
     if (!CommandLineCfg::get().unblind && h_data.get() && plot.blinded_range.valid()) {
-        float x_start = plot.blinded_range.start;
-        float x_end = plot.blinded_range.end;
+        int bin_x_start = h_data->FindBin(plot.blinded_range.start);
+        float x_start = h_data->GetXaxis()->GetBinLowEdge(bin_x_start);
+        int bin_x_end = h_data->FindBin(plot.blinded_range.end) + 1;
+        float x_end = h_data->GetXaxis()->GetBinLowEdge(bin_x_end);
 
         float y_start = gPad->GetUymin();
         float y_end = gPad->GetUymax();
