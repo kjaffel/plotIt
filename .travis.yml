@@ -29,11 +29,8 @@ install:
 - export PATH=$HOME/.local/bin:$PATH
 - pip install --user pyyaml requests
 - wget http://cp3.irmp.ucl.ac.be/~delaere/MoMEMta/ROOT-${ROOT_VERSION}_Python-2.7_gcc-4.9.3_Ubuntu_14.04_x86_64.tar.xz
-- mkdir root
-- cd root
-- tar xf ../ROOT-${ROOT_VERSION}_Python-2.7_gcc-4.9.3_Ubuntu_14.04_x86_64.tar.xz
-- source bin/thisroot.sh
-- cd ..
+- tar xf ROOT-${ROOT_VERSION}_Python-2.7_gcc-4.9.3_Ubuntu_14.04_x86_64.tar.xz
+- source ROOT-${ROOT_VERSION}_Python-2.7_gcc-4.9.3_Ubuntu_14.04_x86_64/bin/thisroot.sh
 before_script:
 - export CXX=g++-4.9
 - export CC=gcc-4.9
