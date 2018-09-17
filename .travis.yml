@@ -1,10 +1,10 @@
-os:
-- linux
+dist: trusty
+sudo: false
 language: cpp
 compiler:
 - gcc
 env:
-- ROOT_VERSION=6.06.00
+- ROOT_VERSION=6.06.02
 addons:
   apt:
     sources:
@@ -28,10 +28,10 @@ install:
 - export CC=gcc-4.9
 - export PATH=$HOME/.local/bin:$PATH
 - pip install --user pyyaml requests
-- wget http://sbrochet.web.cern.ch/sbrochet/public/ROOT-${ROOT_VERSION}_Python-2.7_Ubuntu-12.04_gcc4.9.tar.xz
+- wget http://cp3.irmp.ucl.ac.be/~delaere/MoMEMta/ROOT-${ROOT_VERSION}_Python-2.7_gcc-4.9.3_Ubuntu_14.04_x86_64.tar.xz
 - mkdir root
 - cd root
-- tar xf ../ROOT-${ROOT_VERSION}_Python-2.7_Ubuntu-12.04_gcc4.9.tar.xz
+- tar xf ../http://cp3.irmp.ucl.ac.be/~delaere/MoMEMta/ROOT-${ROOT_VERSION}_Python-2.7_gcc-4.9.3_Ubuntu_14.04_x86_64.tar.xz
 - source bin/thisroot.sh
 - cd ..
 before_script:
