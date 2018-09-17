@@ -2,22 +2,20 @@
 
 # YAML
 
-curl -O -L https://github.com/jbeder/yaml-cpp/archive/release-0.5.3.tar.gz
-tar xf release-0.5.3.tar.gz
+curl -O -L https://github.com/jbeder/yaml-cpp/archive/yaml-cpp-0.6.2.tar.gz
+tar xf yaml-cpp-0.6.2.tar.gz
 
-patch -p0 < yaml-cpp-cmake-fix.patch
-
-cd yaml-cpp-release-0.5.3
+cd yaml-cpp-yaml-cpp-0.6.2
 mkdir build
 cd build
 
-cmake -DBoost_NO_BOOST_CMAKE=TRUE -DYAML_CPP_BUILD_TOOLS=OFF -DYAML_CPP_BUILD_CONTRIB=OFF -DCMAKE_INSTALL_PREFIX:PATH=../../ ..
+cmake -DYAML_CPP_BUILD_TOOLS=OFF -DYAML_CPP_BUILD_CONTRIB=OFF -DCMAKE_INSTALL_PREFIX:PATH=$(pwd)/../../ ..
 
 make -j4
 make install
 
 cd ../..
-rm release-0.5.3.tar.gz
+rm yaml-cpp-0.6.2.tar.gz
 
 # TCLAP
 curl -L "https://github.com/eile/tclap/archive/tclap-1-2-1-release-final.tar.gz" -o "tclap-1.2.1.tar.gz"
