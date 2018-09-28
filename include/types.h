@@ -287,7 +287,7 @@ namespace plotIt {
     std::string x_axis;
     std::string y_axis = "Events";
     std::string y_axis_format;
-    bool y_axis_show_zero = false;
+    bool y_axis_show_zero = true;
     std::string ratio_y_axis_title = "Data / MC";
 
     // Axis range
