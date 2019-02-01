@@ -52,9 +52,11 @@ void generate_files() {
 
     auto h1_mc1 = new TH1F("histo1", "histo1", 200, 0, 10);
     h1_mc1->FillRandom("sqroot_tf", mc1_gen_events);
+    h1_mc1->Fill(1., .00001) // or h1_mc1->Sumw2(true);
 
     auto h2_mc1 = new TH1F("histo2", "histo2", 200, -3, 3);
     h2_mc1->FillRandom("gaus", mc1_gen_events);
+    h2_mc1->Fill(1., .00001) // or h2_mc1->Sumw2(true);
 
     auto h1_alpha_up_mc1 = get_constant_variation(h1_mc1, "histo1__alphaup", 1.06);
     auto h1_alpha_down_mc1 = get_constant_variation(h1_mc1, "histo1__alphadown", 0.93);
@@ -73,9 +75,11 @@ void generate_files() {
 
     auto h1_mc2 = new TH1F("histo1", "histo1", 200, 0, 10);
     h1_mc2->FillRandom("sqroot_tf2", mc2_gen_events);
+    h1_mc2->Fill(1., .00001) // or h1_mc2->Sumw2(true);
 
     auto h2_mc2 = new TH1F("histo2", "histo2", 200, -3, 3);
     h2_mc2->FillRandom("gaus", mc2_gen_events);
+    h2_mc2->Fill(1., .00001) // or h2_mc2->Sumw2(true);
 
     auto h1_alpha_up_mc2 = get_constant_variation(h1_mc2, "histo1__alphaup", 1.09);
     auto h1_alpha_down_mc2 = get_constant_variation(h1_mc2, "histo1__alphadown", 0.97);
