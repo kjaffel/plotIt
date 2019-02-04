@@ -50,8 +50,8 @@ def get_images_likelihood(image1, image2):
 
         r, g, b, a = matches.group(2), matches.group(3), matches.group(4), matches.group(5)
 
-        if int(r) == 255 and int(g) == 255 and int(b) == 255:
-            # Black, ignore
+        if int(r) == int(g) and int(g) == int(b) and ( int(b) == 255 or int(b) == int(a) ):
+            # Black or grey, continue
             continue
 
         non_black_pixels += line_pixel
