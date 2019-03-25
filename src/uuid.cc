@@ -1,18 +1,11 @@
 #include <uuid.h>
 
-#include <uuid/uuid.h>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 std::string get_uuid() {
-    uuid_t out;
-    uuid_generate(out);
+    boost::uuids::random_generator gen;
+    boost::uuids::uuid u = gen();
 
-    std::string uuid;
-    uuid.resize(37);
-
-    uuid_unparse(out, &uuid[0]);
-
-    // Remove null terminator
-    uuid.resize(36);
-
-    return uuid;
+    return boost::uuids::to_string(u);
 }

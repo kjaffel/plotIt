@@ -24,8 +24,8 @@ convert_line_regexp = re.compile('(\d+):\s+\(\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)
 def get_images_likelihood(image1, image2):
     import subprocess
 
-    compare = subprocess.Popen(['compare', image1, image2, '-compose', 'src', 'miff:-'], stdout=subprocess.PIPE)
-    convert = subprocess.Popen(['convert', '-', '-depth', '8', '-define', 'histogram:unique-colors=true', '-format', '%[width] %[height]\n%c', 'histogram:info:-'], stdin=compare.stdout, stdout=subprocess.PIPE)
+    compare = subprocess.Popen(['compare', image1, image2, '-compose', 'src', 'miff:-'], stdout=subprocess.PIPE, universal_newlines=True)
+    convert = subprocess.Popen(['convert', '-', '-depth', '8', '-define', 'histogram:unique-colors=true', '-format', '%[width] %[height]\n%c', 'histogram:info:-'], stdin=compare.stdout, stdout=subprocess.PIPE, universal_newlines=True)
 
     compare.stdout.close()
 
@@ -40,7 +40,7 @@ def get_images_likelihood(image1, image2):
 
     non_black_pixels = 0
 
-    for i in xrange(1, len(lines)):
+    for i in range(1, len(lines)):
         matches = convert_line_regexp.search(lines[i])
         if matches is None:
             continue
@@ -102,21 +102,21 @@ def upload_images(image1, image2):
     uploaded_image2 = client.upload_from_path(image2)
     uploaded_diff = client.upload_from_path(diff_output)
 
-    print "\nImages uploaded:"
-    print " - Reference image: %s" % uploaded_image2['link']
-    print " - Generated image: %s" % uploaded_image1['link']
-    print " - Difference: %s" % uploaded_diff['link']
+    print("\nImages uploaded:")
+    print(" - Reference image: %s" % uploaded_image2['link'])
+    print(" - Generated image: %s" % uploaded_image1['link'])
+    print(" - Difference: %s" % uploaded_diff['link'])
 
-    print "\n-----"
-    print "To delete image, execute these commands:"
+    print("\n-----")
+    print("To delete image, execute these commands:")
 
     curl_command = 'curl -X DELETE -H "Authorization: Client-ID %s" https://api.imgur.com/3/image/%%s' % (client_id)
 
-    print curl_command % uploaded_image1['deletehash']
-    print curl_command % uploaded_image2['deletehash']
-    print curl_command % uploaded_diff['deletehash']
-    print "-----"
-    print ""
+    print(curl_command % uploaded_image1['deletehash'])
+    print(curl_command % uploaded_image2['deletehash'])
+    print(curl_command % uploaded_diff['deletehash'])
+    print("-----")
+    print("")
 
 class plotItSimpleTestCase(unittest.TestCase):
     def __init__(self, methodName='runTest'):
@@ -127,7 +127,7 @@ class plotItSimpleTestCase(unittest.TestCase):
 
     def run_plotit(self, configuration):
         with tempfile.NamedTemporaryFile() as yml:
-            yml.write(yaml.dump(configuration))
+            yml.write(yaml.dump(configuration, encoding='utf-8'))
             yml.flush()
             with open(os.devnull, 'w+b') as null:
                 subprocess.check_call(['../plotIt', yml.name, '-o', self.output_folder.name], stdout=null)

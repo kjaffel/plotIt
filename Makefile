@@ -14,7 +14,7 @@ AR       = ar
 ARFLAGS  = -cq
 
 CXXFLAGS    += $(ROOTCFLAGS) $(INCLUDES) -Iinclude/ -Iexternal/include/ -I$(shell echo $(BOOST_ROOT))/include
-LIBS        = $(ROOTLIBS) -lboost_filesystem -lboost_regex -lboost_system -luuid
+LIBS        = $(ROOTLIBS) -lboost_filesystem -lboost_regex -lboost_system
 STATIC_LIBS = -lyaml-cpp
 GLIBS       = $(ROOTGLIBS)
 #------------------------------------------------------------------------------
