@@ -507,7 +507,20 @@ namespace plotIt {
       group.plot_style->loadFromYAML(node, file->type);
 
       m_legend_groups[group.name] = group;
+
+      if ( node["order"] ) {
+        const auto groupOrder = node["order"].as<int16_t>();
+        for ( auto& file : m_files ) {
+          if ( ( file.legend_group == group.name ) && ( file.order == std::numeric_limits<int16_t>::min() ) ) {
+            file.order = groupOrder;
+          }
+        }
+      }
     }
+
+    std::sort(m_files.begin(), m_files.end(), [](const File& a, const File& b) {
+      return a.order < b.order;
+     });
 
     // Remove non-existant groups from files and update yields group
     for (auto& file: m_files) {
