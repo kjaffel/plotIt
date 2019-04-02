@@ -36,6 +36,6 @@ source setup_sl6_env.sh
 cd test
 root -l -b -q generate_files.C
 # Now plot stuff
-./../plotIt -o plots/ example.yml
+./../plotIt -o plots/ ../examples/example.yml
 # Go to the plots directory to observe the beautiful plots
 ```
