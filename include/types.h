@@ -411,6 +411,7 @@ namespace plotIt {
 
     std::string y_axis_format = "%1% / %2$.2f";
     std::string ratio_y_axis_title = "Data / MC";
+    std::string ratio_style = "P0";
 
     int16_t error_fill_color = 42;
     int16_t error_fill_style = 3154;

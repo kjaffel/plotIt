@@ -415,6 +415,9 @@ namespace plotIt {
       if (node["ratio-y-axis"])
         m_config.ratio_y_axis_title = node["ratio-y-axis"].as<std::string>();
 
+      if (node["ratio-style"])
+        m_config.ratio_style = node["ratio-style"].as<std::string>();
+
       if (node["mode"])
           m_config.mode = node["mode"].as<std::string>();
 
