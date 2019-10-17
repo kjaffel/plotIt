@@ -28,6 +28,13 @@ cd ..
 make -j 4
 ```
 
+Alternatively, plotIt can be built with cmake:
+```bash
+cmake -DCMAKE_INSTALL_PREFIX=optional-install-prefix path/to/plotIt
+make
+make install
+```
+
 ## Test run (command line)
 ```bash
 # Load the proper environment (if not already done)
