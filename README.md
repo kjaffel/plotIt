@@ -28,7 +28,7 @@ cd ..
 make -j 4
 ```
 
-Alternatively, plotIt can be built with cmake:
+Alternatively, plotIt can be built with cmake (if the Boost and ROOT installations that are found are recent enough to define targets for the components):
 ```bash
 cmake -DCMAKE_INSTALL_PREFIX=optional-install-prefix path/to/plotIt
 make
