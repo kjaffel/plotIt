@@ -43,7 +43,6 @@ set(SRCS
 
 add_executable(plotIt ${SRCS})
 add_dependencies(plotIt yaml-cpp tclap)
-target_compile_features(plotIt PRIVATE cxx_std_17)
 target_include_directories(plotIt PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> PRIVATE ${ROOT_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/external/include)
 target_link_libraries(plotIt ${Boost_LIBRARIES} ${ROOT_LIBRARIES} ${CMAKE_CURRENT_BINARY_DIR}/external/lib/libyaml-cpp.a)
 install(TARGETS plotIt
