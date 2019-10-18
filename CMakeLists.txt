@@ -28,6 +28,7 @@ ExternalProject_Add(
   BUILD_IN_SOURCE 1
   PATCH_COMMAND ./autotools.sh
   CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/external
+  INSTALL_COMMAND make -ki install
   )
 
 set(SRCS
