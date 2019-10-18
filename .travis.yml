@@ -48,7 +48,7 @@ jobs:
     - export CC=gcc-4.9
     - mkdir build
     - cd build
-    - cmake ..
+    - cmake -DCMAKE_PREFIX_PATH=$ROOTSYS ..
     - make -j2
     - cd ..
 notifications:
