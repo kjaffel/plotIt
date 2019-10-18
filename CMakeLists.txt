@@ -6,9 +6,9 @@ include(GNUInstallDirs)
 include(ExternalProject)
 
 if(EXISTS "$ENV{CMAKE_PREFIX_PATH}/include/boost")
-    message(STATUS "Will use $ENV{CMAKE_PREFIX_PATH} as base path for boost")
-    set(BOOST_ROOT $ENV{CMAKE_PREFIX_PATH})
-    set(Boost_NO_BOOST_CMAKE ON)
+  message(STATUS "Will use $ENV{CMAKE_PREFIX_PATH} as base path for boost")
+  set(BOOST_ROOT $ENV{CMAKE_PREFIX_PATH})
+  set(Boost_NO_BOOST_CMAKE ON)
 endif()
 
 find_package(ROOT REQUIRED COMPONENTS HistPainter Tree)
@@ -43,8 +43,13 @@ set(SRCS
 
 add_executable(plotIt ${SRCS})
 add_dependencies(plotIt tclap)
-target_link_libraries(plotIt ROOT::HistPainter ROOT::Tree dl Boost::filesystem Boost::regex Boost::system yaml-cpp)
-target_include_directories(plotIt PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> ${CMAKE_CURRENT_BINARY_DIR}/external/include)
+if(TARGET ROOT::Tree AND TARGET ROOT::HistPainter)
+  target_link_libraries(plotIt ROOT::HistPainter ROOT::Tree dl Boost::filesystem Boost::regex Boost::system yaml-cpp)
+  target_include_directories(plotIt PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> ${CMAKE_CURRENT_BINARY_DIR}/external/include)
+else()
+  target_link_libraries(plotIt ${ROOT_LIBRARIES} dl Boost::filesystem Boost::regex Boost::system yaml-cpp)
+  target_include_directories(plotIt PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> ${CMAKE_CURRENT_BINARY_DIR}/external/include ${ROOT_INCLUDE_DIRS})
+endif()
 install(TARGETS plotIt
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
