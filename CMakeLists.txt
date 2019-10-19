@@ -44,7 +44,7 @@ set(SRCS
 add_executable(plotIt ${SRCS})
 add_dependencies(plotIt tclap)
 # workaround, should be inherited from ROOT dependency targets (if present), but is not specified there for versions below 6.18.00
-if((${ROOT_VERSION} VERSION_LESS "6.18.00") OR NOT (TARGET ROOT::Tree AND TARGET ROOT::HistPainter))
+if((${ROOT_VERSION} VERSION_LESS "6.18.00"))
   if(${ROOT_cxx17_FOUND})
     target_compile_features(plotIt PRIVATE cxx_std_17)
   elseif(${ROOT_cxx14_FOUND})
