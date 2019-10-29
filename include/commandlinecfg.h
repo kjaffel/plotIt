@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 class CommandLineCfg {
 
@@ -14,6 +15,7 @@ class CommandLineCfg {
         bool do_yields = false;
         bool unblind = false;
         bool systematicsBreakdown = false;
+        std::string era = "";
 
     private:
         CommandLineCfg() = default;

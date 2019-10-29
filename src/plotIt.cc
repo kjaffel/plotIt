@@ -328,8 +328,18 @@ namespace plotIt {
       if (node["scale"])
         m_config.scale = node["scale"].as<float>();
 
-      if (node["eras"])
-        m_config.eras = node["eras"].as<std::vector<std::string>>();
+      if (node["eras"]) {
+        auto availEras = node["eras"].as<std::vector<std::string>>();
+        if ( CommandLineCfg::get().era.empty() ) {
+          m_config.eras = availEras;
+        } else {
+          const auto reqEra = CommandLineCfg::get().era;
+          if ( std::end(availEras) == std::find(std::begin(availEras), std::end(availEras), reqEra) ) {
+            throw std::runtime_error("Requested era "+reqEra+" not found in configuration file");
+          }
+          m_config.eras = { CommandLineCfg::get().era };
+        }
+      }
 
       if (node["luminosity"]) {
         const auto& lumiNd = node["luminosity"];
@@ -1822,6 +1832,8 @@ int main(int argc, char** argv) {
     TCLAP::ValueArg<std::string> histogramsFolderArg("i", "histograms-folder", "histograms base folder (default: current directory)", false, "./", "string", cmd);
 
     TCLAP::ValueArg<std::string> outputFolderArg("o", "output-folder", "output folder", true, "", "string", cmd);
+
+    TCLAP::ValueArg<std::string> eraArg("e", "era", "era to restrict to", false, "", "string", cmd);
 
     TCLAP::SwitchArg ignoreScaleArg("", "ignore-scales", "Ignore any scales present in the configuration file", cmd, false);
 
