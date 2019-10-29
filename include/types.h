@@ -132,6 +132,8 @@ namespace plotIt {
     std::string pretty_name;
     size_t id = 0;
 
+    std::string era = "";
+
     // For MC and Signal
     float cross_section = 1.;
     float branching_ratio = 1.;
@@ -402,7 +404,8 @@ namespace plotIt {
     float margin_right = 0.03;
     float margin_top = 0.05;
     float margin_bottom = 0.13;
-    float luminosity = -1;
+    std::vector<std::string> eras = {};
+    std::map<std::string,float> luminosity = { { "", -1. } };
     float scale = 1;
     bool no_lumi_rescaling = false;
 

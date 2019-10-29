@@ -301,7 +301,7 @@ namespace plotIt {
         float factor = file.cross_section * file.branching_ratio / file.generated_events;
 
         if (! m_plotIt.getConfiguration().no_lumi_rescaling) {
-          factor *= m_plotIt.getConfiguration().luminosity;
+          factor *= m_plotIt.getConfiguration().luminosity.at(file.era);
         }
 
         if (! CommandLineCfg::get().ignore_scales) {

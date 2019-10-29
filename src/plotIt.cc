@@ -185,6 +185,9 @@ namespace plotIt {
         file.pretty_name = path.stem().native();
       }
 
+      if (node["era"])
+        file.era = node["era"].as<std::string>();
+
       if (node["type"]) {
         std::string type = node["type"].as<std::string>();
         file.type = string_to_type(type);
@@ -325,9 +328,25 @@ namespace plotIt {
       if (node["scale"])
         m_config.scale = node["scale"].as<float>();
 
-      if (node["luminosity"])
-        m_config.luminosity = node["luminosity"].as<float>();
-      else {
+      if (node["eras"])
+        m_config.eras = node["eras"].as<std::vector<std::string>>();
+
+      if (node["luminosity"]) {
+        const auto& lumiNd = node["luminosity"];
+        if ( lumiNd.IsScalar() ) {
+          m_config.luminosity[""] = lumiNd.as<float>();
+        } else if ( lumiNd.IsMap() ) {
+          float totLumi = 0;
+          for ( const auto& era : m_config.eras ) {
+            const auto eraLumi = lumiNd[era].as<float>();
+            m_config.luminosity[era] = eraLumi;
+            totLumi += eraLumi;
+          }
+          m_config.luminosity[""] = totLumi;
+        } else {
+          throw YAML::ParserException(YAML::Mark::null_mark(), "luminosity should be a single value or a map (one value per era)");
+        }
+      } else {
         throw YAML::ParserException(YAML::Mark::null_mark(), "'configuration' block is missing luminosity");
       }
 
@@ -831,7 +850,7 @@ namespace plotIt {
 
     boost::format formatter = get_formatter(m_config.lumi_label);
 
-    float lumi = m_config.luminosity / 1000.;
+    float lumi = m_config.luminosity[""] / 1000.;
     formatter % lumi;
 
     m_config.lumi_label = formatter.str();
@@ -1164,7 +1183,7 @@ namespace plotIt {
         double factor = file.cross_section * file.branching_ratio / file.generated_events;
 
         if (! m_config.no_lumi_rescaling) {
-          factor *= m_config.luminosity;
+          factor *= m_config.luminosity.at(file.era);
         }
         if (!CommandLineCfg::get().ignore_scales)
           factor *= m_config.scale * file.scale;
