@@ -437,5 +437,5 @@ class plotItTestCase(plotItSimpleTestCase):
         self.run_plotit(configuration)
         self.compare_images(
                 os.path.join(self.output_folder.name, 'histo1.pdf'),
-                get_golden_file('default_configuration_blinded_range.pdf')
+                get_golden_file('default_configuration_eras.pdf')
                 )
