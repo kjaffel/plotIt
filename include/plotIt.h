@@ -46,6 +46,7 @@ namespace plotIt {
       class file_list {
       public:
         file_list() = default;
+        std::size_t size() const { return m_sFiles.size(); }
         void push_back(const File& file) { m_sFiles.push_back(&file); }
         const File& operator[] ( std::size_t idx ) const { return *(m_sFiles[idx]); }
         class const_iterator : public boost::iterator_adaptor<const_iterator,
@@ -53,7 +54,7 @@ namespace plotIt {
             boost::iterators::random_access_traversal_tag,const File&> {
           public:
             explicit const_iterator(const base_type& base) : iterator_adaptor_(base) {}
-            reference dereference() const { return **this; }
+            reference dereference() const { return **base_reference(); }
         };
         using value_type = const_iterator::value_type;
         const_iterator begin() const { return const_iterator{std::begin(m_sFiles)}; }

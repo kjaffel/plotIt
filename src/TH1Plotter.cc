@@ -86,18 +86,17 @@ namespace plotIt {
       std::shared_ptr<THStack> stack;
       std::shared_ptr<TH1> histo_merged;
 
-      TH1* nominal;
-
       std::string stack_name = "mc_stack_" + std::to_string(index);
 
       // First pass. Merged all member of a group into a single
       // histogram.
       // Key is group name, value is group histogram
       std::vector<std::pair<std::string, std::shared_ptr<TH1>>> group_histograms;
-      for ( auto& file: m_plotIt.getFiles([this,&nominal,index] ( const auto& f ) {
+      for ( auto& file: m_plotIt.getFiles([this,index] ( const auto& f ) {
             return m_plotIt.filter_eras(f) && ( f.type == MC ) && ( f.stack_index == index )
-                && ( ! f.legend_group.empty() ) && ( (nominal = dynamic_cast<TH1*>(f.object))->GetEntries() != 0 );
+                && ( ! f.legend_group.empty() ) && ( dynamic_cast<TH1*>(f.object)->GetEntries() != 0 );
             } ) ) {
+          TH1* nominal = dynamic_cast<TH1*>(file.object);
           auto it = std::find_if(group_histograms.begin(), group_histograms.end(), [&file](const std::pair<std::string, std::shared_ptr<TH1>>& item) {
                   return item.first == file.legend_group;
                   });
@@ -113,10 +112,12 @@ namespace plotIt {
 
       std::vector<std::tuple<TH1*, std::string>> histograms_in_stack;
 
-      for ( auto& file: m_plotIt.getFiles([this,&nominal,index] ( const auto& f ) {
+      for ( auto& file: m_plotIt.getFiles([this,index] ( const auto& f ) {
             return m_plotIt.filter_eras(f) && ( f.type == MC ) && ( f.stack_index == index )
-                && ( ! ( ( (nominal = dynamic_cast<TH1*>(f.object))->GetEntries() == 0 ) && (f.legend_group.empty()) ) );
+                && ( ! ( ( dynamic_cast<TH1*>(f.object)->GetEntries() == 0 ) && (f.legend_group.empty()) ) );
             } ) ) {
+
+          TH1* nominal = dynamic_cast<TH1*>(file.object);
           if (!stack) {
               stack = std::make_shared<THStack>(stack_name.c_str(), stack_name.c_str());
               TemporaryPool::get().add(stack);
@@ -156,7 +157,7 @@ namespace plotIt {
       }
 
       for (const auto& t: histograms_in_stack) {
-          nominal = std::get<0>(t);
+          TH1* nominal = std::get<0>(t);
           stack->Add(nominal, std::get<1>(t).c_str());
 
           if (histo_merged) {
@@ -269,7 +270,7 @@ namespace plotIt {
     Summary global_summary;
 
     // Rescale and style histograms
-    for (auto& file: m_plotIt.getFiles()) {
+    for (auto& file : m_plotIt.getFiles()) {
       setHistogramStyle(file);
 
       TH1* h = dynamic_cast<TH1*>(file.object);
