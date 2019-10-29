@@ -983,7 +983,9 @@ namespace plotIt {
         c.SetFrameFillStyle(4000);
     }
 
-    boost::optional<Summary> summary = ::plotIt::plot(m_files[0], c, plot);
+    auto aFileIt = std::begin(m_files);
+    while ( ( aFileIt != std::end(m_files) ) && ( ! filter_eras(*aFileIt) ) ) { ++aFileIt; }
+    boost::optional<Summary> summary = ::plotIt::plot(*aFileIt, c, plot);
 
     if (! summary)
       return false;
@@ -1871,6 +1873,7 @@ int main(int argc, char** argv) {
       return 1;
     }
 
+    CommandLineCfg::get().era = eraArg.getValue();
     CommandLineCfg::get().ignore_scales = ignoreScaleArg.getValue();
     CommandLineCfg::get().verbose = verboseArg.getValue();
     CommandLineCfg::get().do_plots = !plotsArg.getValue();
