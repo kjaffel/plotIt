@@ -51,7 +51,7 @@ namespace plotIt {
         const File& operator[] ( std::size_t idx ) const { return *(m_sFiles[idx]); }
         class const_iterator : public boost::iterator_adaptor<const_iterator,
             std::vector<const File*>::const_iterator,File,
-            boost::iterators::random_access_traversal_tag,const File&> {
+            boost::random_access_traversal_tag,const File&> {
           public:
             explicit const_iterator(const base_type& base) : iterator_adaptor_(base) {}
             reference dereference() const { return **base_reference(); }
