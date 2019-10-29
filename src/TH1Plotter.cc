@@ -86,33 +86,21 @@ namespace plotIt {
       std::shared_ptr<THStack> stack;
       std::shared_ptr<TH1> histo_merged;
 
+      TH1* nominal;
+
       std::string stack_name = "mc_stack_" + std::to_string(index);
 
       // First pass. Merged all member of a group into a single
       // histogram.
       // Key is group name, value is group histogram
       std::vector<std::pair<std::string, std::shared_ptr<TH1>>> group_histograms;
-      for (auto& file: m_plotIt.getFiles()) {
-          if (file.type != MC)
-              continue;
-
-          if (file.stack_index != index)
-              continue;
-
-          if (file.legend_group.empty())
-              continue;
-
+      for ( auto& file: m_plotIt.getFiles([this,&nominal,index] ( const auto& f ) {
+            return m_plotIt.filter_eras(f) && ( f.type == MC ) && ( f.stack_index == index )
+                && ( ! f.legend_group.empty() ) && ( (nominal = dynamic_cast<TH1*>(f.object))->GetEntries() != 0 );
+            } ) ) {
           auto it = std::find_if(group_histograms.begin(), group_histograms.end(), [&file](const std::pair<std::string, std::shared_ptr<TH1>>& item) {
                   return item.first == file.legend_group;
                   });
-
-          TH1* nominal = dynamic_cast<TH1*>(file.object);
-
-          // Do not bother with histograms with no entries
-          if (nominal->GetEntries() == 0) {
-              continue;
-          }
-
           if (it == group_histograms.end()) {
               std::string name = "group_histo_" + file.legend_group + "_" + stack_name;
               std::shared_ptr<TH1> h(dynamic_cast<TH1*>(nominal->Clone(name.c_str())));
@@ -125,19 +113,10 @@ namespace plotIt {
 
       std::vector<std::tuple<TH1*, std::string>> histograms_in_stack;
 
-      for (auto& file: m_plotIt.getFiles()) {
-          if (file.type != MC)
-              continue;
-
-          if (file.stack_index != index)
-              continue;
-
-          TH1* nominal = dynamic_cast<TH1*>(file.object);
-
-          // Do not bother with histograms with no entries
-          if (file.legend_group.empty() && nominal->GetEntries() == 0)
-              continue;
-
+      for ( auto& file: m_plotIt.getFiles([this,&nominal,index] ( const auto& f ) {
+            return m_plotIt.filter_eras(f) && ( f.type == MC ) && ( f.stack_index == index )
+                && ( ! ( ( (nominal = dynamic_cast<TH1*>(f.object))->GetEntries() == 0 ) && (f.legend_group.empty()) ) );
+            } ) ) {
           if (!stack) {
               stack = std::make_shared<THStack>(stack_name.c_str(), stack_name.c_str());
               TemporaryPool::get().add(stack);
@@ -177,7 +156,7 @@ namespace plotIt {
       }
 
       for (const auto& t: histograms_in_stack) {
-          TH1* nominal = std::get<0>(t);
+          nominal = std::get<0>(t);
           stack->Add(nominal, std::get<1>(t).c_str());
 
           if (histo_merged) {
@@ -205,12 +184,11 @@ namespace plotIt {
       // Key is systematics name, value is the combined systematics value for each bin
       std::map<std::string, std::vector<float>> combined_systematics_map;
 
-      for (auto& file: m_plotIt.getFiles()) {
-          if (file.type == DATA || file.systematics->size() == 0)
-              continue;
-
-          if (file.type == MC && file.stack_index != index)
-              continue;
+      for ( auto& file: m_plotIt.getFiles([this,index] ( const auto& f ) {
+            return m_plotIt.filter_eras(f)
+                && ( f.type != DATA ) && ( ! f.systematics->empty() )
+                && ( ( f.type != MC ) || ( f.stack_index == index ) ) ;
+            } ) ) {
 
           for (auto& syst: *file.systematics) {
 
@@ -221,6 +199,7 @@ namespace plotIt {
                   combined_systematics = &combined_systematics_map[syst.name()];
                   combined_systematics->resize(stack.syst_only->GetNbinsX(), 0);
               } else {
+
                   combined_systematics = &map_it->second;
               }
 

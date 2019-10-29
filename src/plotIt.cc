@@ -949,14 +949,16 @@ namespace plotIt {
     bool hasLegend = false;
     // Open all files, and find histogram in each
     for (File& file: m_files) {
-      if (! loadObject(file, plot)) {
-        return false;
-      }
+      if ( filter_eras(file) ) {
+        if (! loadObject(file, plot)) {
+          return false;
+        }
 
-      hasLegend |= getPlotStyle(file)->legend.length() > 0;
-      hasData |= file.type == DATA;
-      hasMC |= file.type == MC;
-      hasSignal |= file.type == SIGNAL;
+        hasLegend |= getPlotStyle(file)->legend.length() > 0;
+        hasData |= file.type == DATA;
+        hasMC |= file.type == MC;
+        hasSignal |= file.type == SIGNAL;
+      }
     }
 
     // Can contains '/' if the plot is inside a folder
@@ -1151,7 +1153,10 @@ namespace plotIt {
       std::map<std::tuple<Type, std::string>, double> plot_total_systematics;
 
       // Open all files, and find histogram in each
-      for (auto& file: getFiles()) {
+      for (auto& file: m_files) {
+        if ( ! filter_eras(file) )
+          continue;
+
         if (! loadObject(file, plot)) {
           std::cout << "Could not retrieve plot from " << file.path << std::endl;
           return false;
