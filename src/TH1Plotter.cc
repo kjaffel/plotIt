@@ -92,7 +92,7 @@ namespace plotIt {
       // histogram.
       // Key is group name, value is group histogram
       std::vector<std::pair<std::string, std::shared_ptr<TH1>>> group_histograms;
-      for ( auto& file: m_plotIt.getFiles([this,index] ( const auto& f ) {
+      for ( auto& file: m_plotIt.getFiles([this,index] ( const File& f ) {
             return m_plotIt.filter_eras(f) && ( f.type == MC ) && ( f.stack_index == index )
                 && ( ! f.legend_group.empty() ) && ( dynamic_cast<TH1*>(f.object)->GetEntries() != 0 );
             } ) ) {
@@ -112,7 +112,7 @@ namespace plotIt {
 
       std::vector<std::tuple<TH1*, std::string>> histograms_in_stack;
 
-      for ( auto& file: m_plotIt.getFiles([this,index] ( const auto& f ) {
+      for ( auto& file: m_plotIt.getFiles([this,index] ( const File& f ) {
             return m_plotIt.filter_eras(f) && ( f.type == MC ) && ( f.stack_index == index )
                 && ( ! ( ( dynamic_cast<TH1*>(f.object)->GetEntries() == 0 ) && (f.legend_group.empty()) ) );
             } ) ) {
@@ -185,7 +185,7 @@ namespace plotIt {
       // Key is systematics name, value is the combined systematics value for each bin
       std::map<std::string, std::vector<float>> combined_systematics_map;
 
-      for ( auto& file: m_plotIt.getFiles([this,index] ( const auto& f ) {
+      for ( auto& file: m_plotIt.getFiles([this,index] ( const File& f ) {
             return m_plotIt.filter_eras(f)
                 && ( f.type != DATA ) && ( ! f.systematics->empty() )
                 && ( ( f.type != MC ) || ( f.stack_index == index ) ) ;
