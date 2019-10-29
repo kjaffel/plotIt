@@ -1151,7 +1151,7 @@ namespace plotIt {
       std::map<std::tuple<Type, std::string>, double> plot_total_systematics;
 
       // Open all files, and find histogram in each
-      for (File& file: m_files) {
+      for (auto& file: getFiles()) {
         if (! loadObject(file, plot)) {
           std::cout << "Could not retrieve plot from " << file.path << std::endl;
           return false;

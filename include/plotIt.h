@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/filesystem.hpp>
+#include <boost/iterator/iterator_adaptor.hpp>
 #include <memory>
 #include <iomanip>
 #include <iostream>
@@ -40,9 +41,36 @@ namespace plotIt {
       bool parseConfigurationFile(const std::string& file, const fs::path& histogramsPath);
       void plotAll();
 
-      std::vector<File>& getFiles() {
-        return m_files;
+      // a bit of infrastructure to retrieve selected file lists
+      // stored as vector<const*> but behaving as reference vectors
+      class file_list {
+      public:
+        file_list() = default;
+        void push_back(const File& file) { m_sFiles.push_back(&file); }
+        const File& operator[] ( std::size_t idx ) const { return *(m_sFiles[idx]); }
+        class const_iterator : public boost::iterator_adaptor<const_iterator,
+            std::vector<const File*>::const_iterator,File,
+            boost::iterators::random_access_traversal_tag,const File&> {
+          public:
+            explicit const_iterator(const base_type& base) : iterator_adaptor_(base) {}
+            reference dereference() const { return **this; }
+        };
+        using value_type = const_iterator::value_type;
+        const_iterator begin() const { return const_iterator{std::begin(m_sFiles)}; }
+        const_iterator end() const { return const_iterator{std::end(m_sFiles)}; }
+      private:
+        std::vector<const File*> m_sFiles;
+      };
+      template<typename Predicate>
+      file_list getFiles(Predicate pred) const {
+        file_list result;
+        std::copy_if(std::begin(m_files), std::end(m_files), std::back_inserter(result), pred);
+        return result;
       }
+      bool filter_eras(const File& file) const {
+        return m_config.eras.empty() || ( std::end(m_config.eras) != std::find(std::begin(m_config.eras), std::end(m_config.eras), file.era) );
+      }
+      file_list getFiles() const { return getFiles(std::bind(&plotIt::filter_eras, this, std::placeholders::_1)); }
 
       const Configuration& getConfiguration() const {
         return m_config;

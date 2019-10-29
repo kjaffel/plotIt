@@ -66,7 +66,7 @@ namespace plotIt {
   TH1Plotter::Stacks TH1Plotter::buildStacks(bool sortByYields) {
       std::set<int64_t> indices;
 
-      for (const File& file: m_plotIt.getFiles()) {
+      for (auto& file: m_plotIt.getFiles()) {
           if (file.type == MC)
               indices.emplace(file.stack_index);
       }
@@ -92,7 +92,7 @@ namespace plotIt {
       // histogram.
       // Key is group name, value is group histogram
       std::vector<std::pair<std::string, std::shared_ptr<TH1>>> group_histograms;
-      for (File& file: m_plotIt.getFiles()) {
+      for (auto& file: m_plotIt.getFiles()) {
           if (file.type != MC)
               continue;
 
@@ -125,7 +125,7 @@ namespace plotIt {
 
       std::vector<std::tuple<TH1*, std::string>> histograms_in_stack;
 
-      for (File& file: m_plotIt.getFiles()) {
+      for (auto& file: m_plotIt.getFiles()) {
           if (file.type != MC)
               continue;
 
@@ -205,7 +205,7 @@ namespace plotIt {
       // Key is systematics name, value is the combined systematics value for each bin
       std::map<std::string, std::vector<float>> combined_systematics_map;
 
-      for (File& file: m_plotIt.getFiles()) {
+      for (auto& file: m_plotIt.getFiles()) {
           if (file.type == DATA || file.systematics->size() == 0)
               continue;
 
@@ -290,7 +290,7 @@ namespace plotIt {
     Summary global_summary;
 
     // Rescale and style histograms
-    for (File& file: m_plotIt.getFiles()) {
+    for (auto& file: m_plotIt.getFiles()) {
       setHistogramStyle(file);
 
       TH1* h = dynamic_cast<TH1*>(file.object);
@@ -373,7 +373,7 @@ namespace plotIt {
 
     std::vector<File> signal_files;
 
-    for (File& file: m_plotIt.getFiles()) {
+    for (auto& file: m_plotIt.getFiles()) {
       if (file.type == SIGNAL) {
         signal_files.push_back(file);
       } else if (file.type == DATA) {
@@ -401,7 +401,7 @@ namespace plotIt {
 
     if (plot.normalized) {
         // Normalize each plot
-        for (File& file: m_plotIt.getFiles()) {
+        for (auto& file: m_plotIt.getFiles()) {
             if (file.type == SIGNAL) {
                 TH1* h = dynamic_cast<TH1*>(file.object);
                 h->Scale(1. / fabs(h->GetSumOfWeights()));
