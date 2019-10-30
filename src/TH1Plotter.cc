@@ -738,7 +738,7 @@ namespace plotIt {
       auto& mc_stack = mc_stacks.begin()->second;
 
       std::shared_ptr<TGraphAsymmErrors> ratio = getRatio(h_data.get(), mc_stack.stat_only.get());
-      ratio->Draw("P0 same");
+      ratio->Draw((m_plotIt.getConfiguration().ratio_style + "same").c_str());
 
       // Compute systematic errors
       std::shared_ptr<TH1> h_systematics(static_cast<TH1*>(h_low_pad_axis->Clone()));
@@ -829,7 +829,7 @@ namespace plotIt {
       }
 
       h_low_pad_axis->Draw("same");
-      ratio->Draw("P0 same");
+      ratio->Draw((m_plotIt.getConfiguration().ratio_style + "same").c_str());
 
       // Hide top pad label
       hideXTitle(toDraw[0].first);
