@@ -185,6 +185,9 @@ namespace plotIt {
         file.pretty_name = path.stem().native();
       }
 
+      if (node["era"])
+        file.era = node["era"].as<std::string>();
+
       if (node["type"]) {
         std::string type = node["type"].as<std::string>();
         file.type = string_to_type(type);
@@ -325,9 +328,35 @@ namespace plotIt {
       if (node["scale"])
         m_config.scale = node["scale"].as<float>();
 
-      if (node["luminosity"])
-        m_config.luminosity = node["luminosity"].as<float>();
-      else {
+      if (node["eras"]) {
+        auto availEras = node["eras"].as<std::vector<std::string>>();
+        if ( CommandLineCfg::get().era.empty() ) {
+          m_config.eras = availEras;
+        } else {
+          const auto reqEra = CommandLineCfg::get().era;
+          if ( std::end(availEras) == std::find(std::begin(availEras), std::end(availEras), reqEra) ) {
+            throw std::runtime_error("Requested era "+reqEra+" not found in configuration file");
+          }
+          m_config.eras = { CommandLineCfg::get().era };
+        }
+      }
+
+      if (node["luminosity"]) {
+        const auto& lumiNd = node["luminosity"];
+        if ( lumiNd.IsScalar() ) {
+          m_config.luminosity[""] = lumiNd.as<float>();
+        } else if ( lumiNd.IsMap() ) {
+          float totLumi = 0;
+          for ( const auto& era : m_config.eras ) {
+            const auto eraLumi = lumiNd[era].as<float>();
+            m_config.luminosity[era] = eraLumi;
+            totLumi += eraLumi;
+          }
+          m_config.luminosity[""] = totLumi;
+        } else {
+          throw YAML::ParserException(YAML::Mark::null_mark(), "luminosity should be a single value or a map (one value per era)");
+        }
+      } else {
         throw YAML::ParserException(YAML::Mark::null_mark(), "'configuration' block is missing luminosity");
       }
 
@@ -831,7 +860,7 @@ namespace plotIt {
 
     boost::format formatter = get_formatter(m_config.lumi_label);
 
-    float lumi = m_config.luminosity / 1000.;
+    float lumi = m_config.luminosity[""] / 1000.;
     formatter % lumi;
 
     m_config.lumi_label = formatter.str();
@@ -930,14 +959,16 @@ namespace plotIt {
     bool hasLegend = false;
     // Open all files, and find histogram in each
     for (File& file: m_files) {
-      if (! loadObject(file, plot)) {
-        return false;
-      }
+      if ( filter_eras(file) ) {
+        if (! loadObject(file, plot)) {
+          return false;
+        }
 
-      hasLegend |= getPlotStyle(file)->legend.length() > 0;
-      hasData |= file.type == DATA;
-      hasMC |= file.type == MC;
-      hasSignal |= file.type == SIGNAL;
+        hasLegend |= getPlotStyle(file)->legend.length() > 0;
+        hasData |= file.type == DATA;
+        hasMC |= file.type == MC;
+        hasSignal |= file.type == SIGNAL;
+      }
     }
 
     // Can contains '/' if the plot is inside a folder
@@ -952,7 +983,9 @@ namespace plotIt {
         c.SetFrameFillStyle(4000);
     }
 
-    boost::optional<Summary> summary = ::plotIt::plot(m_files[0], c, plot);
+    auto aFileIt = std::begin(m_files);
+    while ( ( aFileIt != std::end(m_files) ) && ( ! filter_eras(*aFileIt) ) ) { ++aFileIt; }
+    boost::optional<Summary> summary = ::plotIt::plot(*aFileIt, c, plot);
 
     if (! summary)
       return false;
@@ -1132,7 +1165,10 @@ namespace plotIt {
       std::map<std::tuple<Type, std::string>, double> plot_total_systematics;
 
       // Open all files, and find histogram in each
-      for (File& file: m_files) {
+      for (auto& file: m_files) {
+        if ( ! filter_eras(file) )
+          continue;
+
         if (! loadObject(file, plot)) {
           std::cout << "Could not retrieve plot from " << file.path << std::endl;
           return false;
@@ -1164,7 +1200,7 @@ namespace plotIt {
         double factor = file.cross_section * file.branching_ratio / file.generated_events;
 
         if (! m_config.no_lumi_rescaling) {
-          factor *= m_config.luminosity;
+          factor *= m_config.luminosity.at(file.era);
         }
         if (!CommandLineCfg::get().ignore_scales)
           factor *= m_config.scale * file.scale;
@@ -1799,6 +1835,8 @@ int main(int argc, char** argv) {
 
     TCLAP::ValueArg<std::string> outputFolderArg("o", "output-folder", "output folder", true, "", "string", cmd);
 
+    TCLAP::ValueArg<std::string> eraArg("e", "era", "era to restrict to", false, "", "string", cmd);
+
     TCLAP::SwitchArg ignoreScaleArg("", "ignore-scales", "Ignore any scales present in the configuration file", cmd, false);
 
     TCLAP::SwitchArg verboseArg("v", "verbose", "Verbose output (print summary)", cmd, false);
@@ -1835,6 +1873,7 @@ int main(int argc, char** argv) {
       return 1;
     }
 
+    CommandLineCfg::get().era = eraArg.getValue();
     CommandLineCfg::get().ignore_scales = ignoreScaleArg.getValue();
     CommandLineCfg::get().verbose = verboseArg.getValue();
     CommandLineCfg::get().do_plots = !plotsArg.getValue();

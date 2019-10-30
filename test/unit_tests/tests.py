@@ -419,3 +419,23 @@ class plotItTestCase(plotItSimpleTestCase):
                 os.path.join(self.output_folder.name, 'histo1.pdf'),
                 get_golden_file('default_configuration_multi_stacks_line_type.pdf')
                 )
+
+    def test_eras(self):
+        configuration = get_configuration()
+
+        configuration['files']['MC_sample1.root']['era'] = "1"
+        configuration['files']['MC_sample1.root']['cross-section'] *= 1.5
+        configuration['files']['data.root']['era'] = "1"
+        configuration['files']['MC_sample2.root']['era'] = "2"
+        configuration['files']['MC_sample2.root']['cross-section'] *= 3.
+        configuration['configuration']['eras'] = [ "1", "2" ]
+        configuration['configuration']['luminosity'] = {
+                "1" : 0.67,
+                "2" : 0.33
+                }
+
+        self.run_plotit(configuration)
+        self.compare_images(
+                os.path.join(self.output_folder.name, 'histo1.pdf'),
+                get_golden_file('default_configuration_eras.pdf')
+                )
