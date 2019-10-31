@@ -69,7 +69,7 @@ namespace plotIt {
         return result;
       }
       bool filter_eras(const File& file) const {
-        return m_config.eras.empty() || ( std::end(m_config.eras) != std::find(std::begin(m_config.eras), std::end(m_config.eras), file.era) );
+        return m_config.eras.empty() || file.era.empty() || ( std::end(m_config.eras) != std::find(std::begin(m_config.eras), std::end(m_config.eras), file.era) );
       }
       file_list getFiles() const { return getFiles(std::bind(&plotIt::filter_eras, this, std::placeholders::_1)); }
 
