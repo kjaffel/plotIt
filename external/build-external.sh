@@ -18,7 +18,7 @@ cd ../..
 rm yaml-cpp-0.6.2.tar.gz
 
 # TCLAP
-curl -L "https://github.com/eile/tclap/archive/tclap-1-2-1-release-final.tar.gz" -o "tclap-1.2.1.tar.gz"
+curl -L "https://github.com/mirror/tclap/archive/tclap-1-2-1-release-final.tar.gz" -o "tclap-1.2.1.tar.gz"
 tar xf tclap-1.2.1.tar.gz
 mv tclap-tclap-1-2-1-release-final tclap-1.2.1
 
