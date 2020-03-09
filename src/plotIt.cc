@@ -557,6 +557,7 @@ namespace plotIt {
     // Remove non-existant groups from files and update yields group
     for (auto& file: m_files) {
       if (!file.legend_group.empty() && !m_legend_groups.count(file.legend_group)) {
+        std::cout << "Warning: group " << file.legend_group << " (used for file " << file.pretty_name << ") not found, ignoring" << std::endl;
         file.legend_group = "";
       }
 
