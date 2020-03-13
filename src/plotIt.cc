@@ -506,7 +506,9 @@ namespace plotIt {
             parseFileNode(file, *it);
 
         file.id = process_id++;
-        m_files.push_back(file);
+        if ( filter_eras(file) ) {
+          m_files.push_back(file);
+        }
     }
 
     if (! expandFiles())
@@ -557,6 +559,7 @@ namespace plotIt {
     // Remove non-existant groups from files and update yields group
     for (auto& file: m_files) {
       if (!file.legend_group.empty() && !m_legend_groups.count(file.legend_group)) {
+        std::cout << "Warning: group " << file.legend_group << " (used for file " << file.pretty_name << ") not found, ignoring" << std::endl;
         file.legend_group = "";
       }
 
@@ -962,16 +965,14 @@ namespace plotIt {
     bool hasLegend = false;
     // Open all files, and find histogram in each
     for (File& file: m_files) {
-      if ( filter_eras(file) ) {
-        if (! loadObject(file, plot)) {
-          return false;
-        }
-
-        hasLegend |= getPlotStyle(file)->legend.length() > 0;
-        hasData |= file.type == DATA;
-        hasMC |= file.type == MC;
-        hasSignal |= file.type == SIGNAL;
+      if (! loadObject(file, plot)) {
+        return false;
       }
+
+      hasLegend |= getPlotStyle(file)->legend.length() > 0;
+      hasData |= file.type == DATA;
+      hasMC |= file.type == MC;
+      hasSignal |= file.type == SIGNAL;
     }
 
     // Can contains '/' if the plot is inside a folder
@@ -986,9 +987,11 @@ namespace plotIt {
         c.SetFrameFillStyle(4000);
     }
 
-    auto aFileIt = std::begin(m_files);
-    while ( ( aFileIt != std::end(m_files) ) && ( ! filter_eras(*aFileIt) ) ) { ++aFileIt; }
-    boost::optional<Summary> summary = ::plotIt::plot(*aFileIt, c, plot);
+    if ( m_files.empty() ) {
+      std::cout << "No files selected" << std::endl;
+      return false;
+    }
+    boost::optional<Summary> summary = ::plotIt::plot(m_files[0], c, plot);
 
     if (! summary)
       return false;
@@ -1169,9 +1172,6 @@ namespace plotIt {
 
       // Open all files, and find histogram in each
       for (auto& file: m_files) {
-        if ( ! filter_eras(file) )
-          continue;
-
         if (! loadObject(file, plot)) {
           std::cout << "Could not retrieve plot from " << file.path << std::endl;
           return false;
