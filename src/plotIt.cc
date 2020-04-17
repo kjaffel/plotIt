@@ -1547,6 +1547,11 @@ namespace plotIt {
       }
     }
 
+    if (!m_config.book_keeping_file_name.empty()) {
+      fs::path outputName = m_outputPath / m_config.book_keeping_file_name;
+      m_config.book_keeping_file.reset(TFile::Open(outputName.native().c_str(), "recreate"));
+    }
+
     if (CommandLineCfg::get().verbose)
         std::cout << "Loading all plots..." << std::endl;
 
@@ -1561,24 +1566,19 @@ namespace plotIt {
     if (CommandLineCfg::get().verbose)
         std::cout << "done." << std::endl;
 
-    if (!m_config.book_keeping_file_name.empty()) {
-      fs::path outputName = m_outputPath / m_config.book_keeping_file_name;
-      m_config.book_keeping_file.reset(TFile::Open(outputName.native().c_str(), "recreate"));
-    }
-
     if (CommandLineCfg::get().do_plots) {
       for (Plot& plot: plots) {
         plotIt::plot(plot);
       }
     }
 
+    if (CommandLineCfg::get().do_yields) {
+      plotIt::yields(plots);
+    }
+
     if (m_config.book_keeping_file) {
       m_config.book_keeping_file->Close();
       m_config.book_keeping_file.reset();
-    }
-
-    if (CommandLineCfg::get().do_yields) {
-      plotIt::yields(plots);
     }
   }
 
@@ -1613,8 +1613,9 @@ namespace plotIt {
         return true;
     }
 
-    file.handle.reset(TFile::Open(file.path.c_str()));
-    if (! file.handle.get())
+    if (! file.handle)
+      file.handle.reset(TFile::Open(file.path.c_str()));
+    if (! file.handle)
       return false;
 
     file.systematics_cache.clear();
