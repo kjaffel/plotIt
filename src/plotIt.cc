@@ -1130,7 +1130,7 @@ namespace plotIt {
     return true;
   }
 
-  bool plotIt::yields(std::vector<Plot>& plots){
+  bool plotIt::yields(std::vector<Plot>::iterator plots_begin, std::vector<Plot>::iterator plots_end){
     std::cout << "Producing LaTeX yield table.\n";
 
     std::map<std::string, double> data_yields;
@@ -1157,7 +1157,8 @@ namespace plotIt {
 
     bool has_data(false);
 
-    for(Plot& plot: plots){
+    for ( auto it = plots_begin; it != plots_end; ++it ) {
+      auto& plot = *it;
       if (!plot.use_for_yields)
         continue;
 
@@ -1547,42 +1548,57 @@ namespace plotIt {
       }
     }
 
-    if (CommandLineCfg::get().verbose)
-        std::cout << "Loading all plots..." << std::endl;
-
-    for (File& file: m_files) {
-      if (! loadAllObjects(file, plots))
-          return;
-
-      file.handle.reset();
-      file.friend_handles.clear();
-    }
-
-    if (CommandLineCfg::get().verbose)
-        std::cout << "done." << std::endl;
-
     if (!m_config.book_keeping_file_name.empty()) {
       fs::path outputName = m_outputPath / m_config.book_keeping_file_name;
       m_config.book_keeping_file.reset(TFile::Open(outputName.native().c_str(), "recreate"));
     }
 
-    if (CommandLineCfg::get().do_plots) {
-      for (Plot& plot: plots) {
-        plotIt::plot(plot);
+    constexpr std::size_t plots_per_chunk = 100;
+
+    auto plots_begin = plots.begin();
+    auto plots_end = plots.begin();
+    while ( plots_end != plots.end() ) {
+      plots_begin = plots_end;
+      if ( std::distance(plots_begin, plots.end()) > plots_per_chunk ) {
+        plots_end = plots_begin+plots_per_chunk;
+      } else {
+        plots_end = plots.end();
       }
+
+      if (CommandLineCfg::get().verbose)
+          std::cout << "Loading plots " << std::distance(plots.begin(), plots_begin) << "-" << std::distance(plots.begin(), plots_end) << " of " << plots.size() << "..." << std::endl;
+
+      for (File& file: m_files) {
+        if (! loadAllObjects(file, plots_begin, plots_end))
+            return;
+      }
+
+      if (CommandLineCfg::get().verbose)
+          std::cout << "done." << std::endl;
+
+      if (CommandLineCfg::get().do_plots) {
+        for ( auto it = plots_begin; it != plots_end; ++it ) {
+          plotIt::plot(*it);
+        }
+      }
+
+      if (CommandLineCfg::get().do_yields) {
+        plotIt::yields(plots_begin, plots_end);
+      }
+    }
+
+    for (File& file: m_files) {
+      file.handle.reset();
+      file.friend_handles.clear();
     }
 
     if (m_config.book_keeping_file) {
       m_config.book_keeping_file->Close();
       m_config.book_keeping_file.reset();
     }
-
-    if (CommandLineCfg::get().do_yields) {
-      plotIt::yields(plots);
-    }
   }
 
-  bool plotIt::loadAllObjects(File& file, const std::vector<Plot>& plots) {
+  bool plotIt::loadAllObjects(File& file, std::vector<Plot>::const_iterator plots_begin, std::vector<Plot>::const_iterator plots_end) {
 
     file.object = nullptr;
     file.objects.clear();
@@ -1594,7 +1610,8 @@ namespace plotIt {
           file.chain->Add(file.path.c_str());
         }
 
-        for (const auto& plot: plots) {
+        for ( auto it = plots_begin; it != plots_end; ++it ) {
+          const auto& plot = *it;
 
           auto x_axis_range = plot.log_x ? plot.log_x_axis_range : plot.x_axis_range;
 
@@ -1613,13 +1630,15 @@ namespace plotIt {
         return true;
     }
 
-    file.handle.reset(TFile::Open(file.path.c_str()));
-    if (! file.handle.get())
+    if (! file.handle)
+      file.handle.reset(TFile::Open(file.path.c_str()));
+    if (! file.handle)
       return false;
 
     file.systematics_cache.clear();
 
-    for (const auto& plot: plots) {
+    for ( auto it = plots_begin; it != plots_end; ++it ) {
+      const auto& plot = *it;
 
       std::string plot_name = plot.name;
 
