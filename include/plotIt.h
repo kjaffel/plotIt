@@ -90,11 +90,11 @@ namespace plotIt {
 
       // Plot method
       bool plot(Plot& plot);
-      bool yields(std::vector<Plot>& plots);
+      bool yields(std::vector<Plot>::iterator plots_begin, std::vector<Plot>::iterator plots_end);
 
       bool expandFiles();
       bool expandObjects(File& file, std::vector<Plot>& plots);
-      bool loadAllObjects(File& file, const std::vector<Plot>& plots);
+      bool loadAllObjects(File& file, std::vector<Plot>::const_iterator plots_begin, std::vector<Plot>::const_iterator plots_end);
       bool loadObject(File& file, const Plot& plot);
 
       void fillLegend(TLegend& legend, const Plot& plot, bool with_uncertainties);
