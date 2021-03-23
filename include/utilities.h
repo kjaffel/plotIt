@@ -71,7 +71,7 @@ namespace plotIt {
       object->SetTitleSize(TITLE_FONTSIZE, "XYZ");
 
       object->GetYaxis()->SetNdivisions(510);
-      object->GetYaxis()->SetTitleOffset(2.5);
+      object->GetYaxis()->SetTitleOffset(1.5);
       object->GetYaxis()->SetLabelOffset(0.01);
       object->GetYaxis()->SetTickLength(0.03);
       object->GetYaxis()->SetLabelSize(plot.y_axis_label_size);
