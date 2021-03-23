@@ -885,8 +885,7 @@ namespace plotIt {
               entry = {file.object, plot_style->legend, plot_style->legend_style, plot_style->legend_order};
           } else if (file.plot_style.get() && file.plot_style->legend.length() > 0) {
               entry = {file.object, file.plot_style->legend, file.plot_style->legend_style, file.plot_style->legend_order};
-          }
-          else{
+          } else {
             return false;
           }
 
