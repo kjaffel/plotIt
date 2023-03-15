@@ -724,7 +724,7 @@ namespace plotIt {
       h_low_pad_axis->Reset(); // Keep binning
       setRange(h_low_pad_axis.get(), x_axis_range, plot.ratio_y_axis_range);
 
-      setDefaultStyle(h_low_pad_axis.get(), plot, 3.);
+      setDefaultStyle(h_low_pad_axis.get(), plot, 0.6666);
       h_low_pad_axis->GetYaxis()->SetTitle(plot.ratio_y_axis_title.c_str());
       h_low_pad_axis->GetYaxis()->SetTickLength(0.04);
       h_low_pad_axis->GetYaxis()->SetNdivisions(505, true);
