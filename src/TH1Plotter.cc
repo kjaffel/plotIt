@@ -458,7 +458,7 @@ namespace plotIt {
         computeSystematics(mc_stacks, global_summary);
     }
 
-    if (plot.normalizedPerBinWidth) {
+    if (plot.normalizedByBinWidth) {
         // Normalize each plot
         for (auto& file: m_plotIt.getFiles()) {
             if (file.type == SIGNAL) {

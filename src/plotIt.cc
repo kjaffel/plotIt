@@ -619,8 +619,8 @@ namespace plotIt {
       if (node["normalized"])
         plot.normalized = node["normalized"].as<bool>();
 
-      if (node["normalizedPerBinWidth"])
-        plot.normalizedPerBinWidth = node["normalizedPerBinWidth"].as<bool>();
+      if (node["normalizedByBinWidth"])
+        plot.normalizedByBinWidth = node["normalizedByBinWidth"].as<bool>();
 
       if (node["no-data"])
         plot.no_data = node["no-data"].as<bool>();
