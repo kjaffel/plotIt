@@ -458,6 +458,31 @@ namespace plotIt {
         computeSystematics(mc_stacks, global_summary);
     }
 
+    if (plot.normalizedPerBinWidth) {
+        // Normalize each plot
+        for (auto& file: m_plotIt.getFiles()) {
+            if (file.type == SIGNAL) {
+                TH1* h = dynamic_cast<TH1*>(file.object);
+                h->Scale(1.,"width");
+            }
+        }
+
+        if (h_data.get()) {
+            h_data->Scale(1.,"width");
+        }
+
+        std::for_each(mc_stacks.begin(), mc_stacks.end(), [](TH1Plotter::Stacks::value_type& value) {
+            TIter next(value.second.stack->GetHists());
+            TH1* h = nullptr;
+            while ((h = static_cast<TH1*>(next()))) {
+                h->Scale(1.,"width");
+            }
+            value.second.stat_and_syst->Scale(1.,"width");
+            value.second.syst_only->Scale(1.,"width");
+            value.second.stat_only->Scale(1.,"width");
+        });
+    }
+
     // Store all the histograms to draw, and find the one with the highest maximum
     std::vector<std::pair<TObject*, std::string>> toDraw = { std::make_pair(h_data.get(), data_drawing_options) };
     for (File& signal: signal_files) {
