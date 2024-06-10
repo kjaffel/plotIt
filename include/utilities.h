@@ -50,8 +50,25 @@ namespace plotIt {
         float binSize = object->GetXaxis()->GetBinWidth(1);
         std::string title = plot.y_axis;
 
-        boost::format formatter = get_formatter(plot.y_axis_format);
-        object->GetYaxis()->SetTitle((formatter % title % binSize).str().c_str());
+        bool isEquidistantBinning = true;
+        for(int i = 2; i <= object->GetXaxis()->GetNbins(); ++i) {
+          if(object->GetXaxis()->GetBinWidth(1)!=object->GetXaxis()->GetBinWidth(i))
+            isEquidistantBinning = false;
+        }
+
+        if(isEquidistantBinning){
+          boost::format formatter = get_formatter(plot.y_axis_format);
+          object->GetYaxis()->SetTitle((formatter % title % binSize).str().c_str());
+        }
+        else if(plot.normalizedByBinWidth){
+          std::string format_string = "%1%/%2%";
+          boost::format formatter = get_formatter(format_string);
+          object->GetYaxis()->SetTitle((formatter % title % "Bin width").str().c_str());
+        }
+        else{
+          boost::format formatter = get_formatter(plot.y_axis_format);
+          object->GetYaxis()->SetTitle((formatter % title % binSize).str().c_str());
+        }
       }
 
       if (plot.show_ratio && object->GetXaxis())

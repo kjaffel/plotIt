@@ -283,6 +283,7 @@ namespace plotIt {
     bool no_data = false;
     bool override = false; // flag to plot only those which have it true (if at least one plot has it true)
     bool normalized = false;
+    bool normalizedByBinWidth = false;
     bool log_y = false;
     bool log_x = false;
 
