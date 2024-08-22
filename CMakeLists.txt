@@ -24,7 +24,7 @@ add_dependencies(yaml-cpp yaml-cpp-build)
 set_target_properties(yaml-cpp PROPERTIES IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/external/lib/libyaml-cpp.a)
 ExternalProject_Add(
   tclap
-  URL https://github.com/mirror/tclap/archive/tclap-1-2-1-release-final.tar.gz
+  URL https://github.com/mirror/tclap/archive/refs/heads/1.2.zip
   BUILD_IN_SOURCE 1
   PATCH_COMMAND ./autotools.sh
   CONFIGURE_COMMAND ./configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/external
