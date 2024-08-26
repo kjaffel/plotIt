@@ -203,7 +203,7 @@ namespace plotIt {
       if (str.length() > max_len - 1) {
           std::string ret = str;
           ret.resize(max_len - 1);
-          return ret + u8"…";
+          return ret + std::string(reinterpret_cast<const char*>(u8"…"));
       } else {
           return str;
       }

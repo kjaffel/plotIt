@@ -18,17 +18,16 @@ cd ../..
 rm yaml-cpp-0.6.2.tar.gz
 
 # TCLAP
-curl -L "https://github.com/mirror/tclap/archive/tclap-1-2-1-release-final.tar.gz" -o "tclap-1.2.1.tar.gz"
-tar xf tclap-1.2.1.tar.gz
-mv tclap-tclap-1-2-1-release-final tclap-1.2.1
+curl -L "https://sourceforge.net/projects/tclap/files/tclap-1.4.0-rc1.tar.bz2/download" -o "tclap-1.4.0-rc1.tar.bz2"
+tar xf tclap-1.4.0-rc1.tar.bz2
+cd tclap-1.4.0-rc1
 
-cd tclap-1.2.1
+mkdir build
+cd build
 
-./autotools.sh
-./configure --prefix=$PWD/../
+cmake ..
+cmake --build .
+cmake --install . --prefix=$PWD/../../
 
-make -j4
-make install
-
-cd ..
-rm tclap-1.2.1.tar.gz
+cd ../..
+rm tclap-1.4.0-rc1.tar.bz2

@@ -51,7 +51,7 @@ namespace plotIt {
         std::cout << Color::FG_MAGENTA << type_to_string(type) << Color::RESET << std::endl;
 
         // Print header
-        std::cout << format(u8"%|1$50|    %|1$9|N ± %|1$6|ΔN") % u8" ";
+	std::cout << boost::format(reinterpret_cast<const char*>(u8"%|1$50|    %|1$9|N ± %|1$6|ΔN")) % " ";
         //if (type != DATA) {
             //std::cout << format("    %|1$7|ε ± %|1$6|Δε") % " ";
         //}
