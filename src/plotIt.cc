@@ -648,6 +648,9 @@ namespace plotIt {
       if (node["show-ratio"])
         plot.show_ratio = node["show-ratio"].as<bool>();
 
+      if (node["evaluateDataExcess"])
+        plot.evaluateDataExcess = node["evaluateDataExcess"].as<bool>();
+
       if (node["fit-ratio"])
         plot.fit_ratio = node["fit-ratio"].as<bool>();
 
@@ -1558,7 +1561,7 @@ namespace plotIt {
       m_config.book_keeping_file.reset(TFile::Open(outputName.native().c_str(), "recreate"));
     }
 
-    constexpr std::size_t plots_per_chunk = 100;
+    constexpr std::size_t plots_per_chunk = 20;
 
     auto plots_begin = plots.begin();
     auto plots_end = plots.begin();
