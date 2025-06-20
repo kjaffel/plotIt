@@ -308,18 +308,24 @@ namespace plotIt {
         float factor = file.cross_section * file.branching_ratio / file.generated_events;
 
         if (! m_plotIt.getConfiguration().no_lumi_rescaling) {
-          factor *= m_plotIt.getConfiguration().luminosity.at(file.era);
-        }
+	      if (! file.era.empty()) {
+          	factor *= m_plotIt.getConfiguration().luminosity.at(file.era);
+	    	}
+		}
 
         if (! CommandLineCfg::get().ignore_scales) {
           factor *= m_plotIt.getConfiguration().scale * file.scale;
         }
 
         h->Scale(factor);
-
         SummaryItem summary;
         summary.name = file.pretty_name;
         summary.process_id = file.id;
+        
+        std::cout << "file: " << summary.name << std::endl;
+        std::cout << " - lumi: " << m_plotIt.getConfiguration().luminosity.at(file.era)  << " era: " << file.era << std::endl;
+        std::cout << " - cross_section: " << file.cross_section  << " branching_ratio: " << file.branching_ratio << " generated_events:" << file.generated_events << std::endl;
+        std::cout << " - factor: " << factor  << std::endl;
 
         double rescaled_integral_error = 0;
         double rescaled_integral = h->IntegralAndError(h->GetXaxis()->GetFirst(), h->GetXaxis()->GetLast(), rescaled_integral_error);
