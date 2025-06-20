@@ -15,35 +15,63 @@
 #include <pool.h>
 #include <utilities.h>
 
-namespace plotIt {
 
+namespace plotIt {
     /*!
-     * Compute the ratio between two histograms, taking into account asymetric error bars
+     * Compute the ratio between two histograms, with asymmetric uncertainty propagation.
+     * (data-MC) / data uncertainty  ==> evaluateDataExcess =true
+     * data / MC  ==> evaluateDataExcess=false
      */
-    std::shared_ptr<TGraphAsymmErrors> getRatio(TH1* a, TH1* b) {
+    std::shared_ptr<TGraphAsymmErrors> getRatio(TH1* a, TH1* b, bool evaluateDataExcess = false) {
         std::shared_ptr<TGraphAsymmErrors> g(new TGraphAsymmErrors(a));
 
         size_t npoint = 0;
-        for (size_t i = 1; i <= (size_t) a->GetNbinsX(); i++) {
-            float b1 = a->GetBinContent(i);
-            float b2 = b->GetBinContent(i);
+        for (size_t i = 1; i <= (size_t)a->GetNbinsX(); i++) {
+            float b1 = a->GetBinContent(i); // data
+            float b2 = b->GetBinContent(i); // MC
 
-            if ((b1 == 0) || (b2 == 0))
+            if (b1 == 0)
                 continue;
 
-            float ratio = b1 / b2;
+            float ratio = 0.0;
+            float error_up = 0.0;
+            float error_low = 0.0;
 
-            float b1sq = b1 * b1;
-            float b2sq = b2 * b2;
+            if (evaluateDataExcess) {
+                float dataErrorUp = a->GetBinErrorUp(i);
+                float dataErrorLow = a->GetBinErrorLow(i);
 
-            float e1sq_up = a->GetBinErrorUp(i) * a->GetBinErrorUp(i);
-            float e2sq_up = b->GetBinErrorUp(i) * b->GetBinErrorUp(i);
+                if (dataErrorUp == 0 || dataErrorLow == 0)
+                    continue;
 
-            float e1sq_low = a->GetBinErrorLow(i) * a->GetBinErrorLow(i);
-            float e2sq_low = b->GetBinErrorLow(i) * b->GetBinErrorLow(i);
+                ratio = (b1 - b2) / dataErrorUp;
 
-            float error_up = sqrt((e1sq_up * b2sq + e2sq_up * b1sq) / (b2sq * b2sq));
-            float error_low = sqrt((e1sq_low * b2sq + e2sq_low * b1sq) / (b2sq * b2sq));
+                // Propagate asymmetric uncertainties
+                float b1ErrorUp = a->GetBinErrorUp(i);
+                float b1ErrorLow = a->GetBinErrorLow(i);
+                float b2ErrorUp = b->GetBinErrorUp(i);
+                float b2ErrorLow = b->GetBinErrorLow(i);
+
+                error_up = sqrt((b1ErrorUp * b1ErrorUp + b2ErrorUp * b2ErrorUp) / (dataErrorUp * dataErrorUp));
+                error_low = sqrt((b1ErrorLow * b1ErrorLow + b2ErrorLow * b2ErrorLow) / (dataErrorLow * dataErrorLow));
+            } else {
+                if ((b1 == 0) || (b2 == 0))
+                    continue;
+
+                ratio = b1 / b2;
+
+                float b1sq = b1 * b1;
+                float b2sq = b2 * b2;
+
+                float e1sq_up = a->GetBinErrorUp(i) * a->GetBinErrorUp(i);
+                float e2sq_up = b->GetBinErrorUp(i) * b->GetBinErrorUp(i);
+
+                float e1sq_low = a->GetBinErrorLow(i) * a->GetBinErrorLow(i);
+                float e2sq_low = b->GetBinErrorLow(i) * b->GetBinErrorLow(i);
+
+                error_up = sqrt((e1sq_up * b2sq + e2sq_up * b1sq) / (b2sq * b2sq));
+                error_low = sqrt((e1sq_low * b2sq + e2sq_low * b1sq) / (b2sq * b2sq));
+            }
 
             //Set the point center and its errors
             g->SetPoint(npoint, a->GetBinCenter(i), ratio);
@@ -280,18 +308,24 @@ namespace plotIt {
         float factor = file.cross_section * file.branching_ratio / file.generated_events;
 
         if (! m_plotIt.getConfiguration().no_lumi_rescaling) {
-          factor *= m_plotIt.getConfiguration().luminosity.at(file.era);
-        }
+	      if (! file.era.empty()) {
+          	factor *= m_plotIt.getConfiguration().luminosity.at(file.era);
+	    	}
+		}
 
         if (! CommandLineCfg::get().ignore_scales) {
           factor *= m_plotIt.getConfiguration().scale * file.scale;
         }
 
         h->Scale(factor);
-
         SummaryItem summary;
         summary.name = file.pretty_name;
         summary.process_id = file.id;
+        
+        std::cout << "file: " << summary.name << std::endl;
+        std::cout << " - lumi: " << m_plotIt.getConfiguration().luminosity.at(file.era)  << " era: " << file.era << std::endl;
+        std::cout << " - cross_section: " << file.cross_section  << " branching_ratio: " << file.branching_ratio << " generated_events:" << file.generated_events << std::endl;
+        std::cout << " - factor: " << factor  << std::endl;
 
         double rescaled_integral_error = 0;
         double rescaled_integral = h->IntegralAndError(h->GetXaxis()->GetFirst(), h->GetXaxis()->GetLast(), rescaled_integral_error);
@@ -761,7 +795,7 @@ namespace plotIt {
 
       auto& mc_stack = mc_stacks.begin()->second;
 
-      std::shared_ptr<TGraphAsymmErrors> ratio = getRatio(h_data.get(), mc_stack.stat_only.get());
+      std::shared_ptr<TGraphAsymmErrors> ratio = getRatio(h_data.get(), mc_stack.stat_only.get(), plot.evaluateDataExcess);
       ratio->Draw((m_plotIt.getConfiguration().ratio_style + "same").c_str());
 
       // Compute systematic errors
